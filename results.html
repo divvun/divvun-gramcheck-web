@@ -1,0 +1,19 @@
+<div class="grammar-errors-list">
+    <? for (var i = 0; i < errors.length; i++) { ?>
+    <div class="grammar-error">
+      <div class="reason"><?= errors[i].reason ?></div>
+      <div classs="context"><?!= errors[i].contextText ?></div>
+      <div class="suggestions-heading"><?= errors[i].suggestions.length > 0 ? 'Suggested corrections' : '' ?></div>
+      <div class="suggestions-list">
+        <? for (var j = 0; j < errors[i].suggestions.length; j++) { ?>
+          <div class="suggestion" 
+            data-error-text="<?= errors[i].errorText ?>"
+            data-correction="<?= errors[i].suggestions[j] ?>"
+          >
+            <?= errors[i].suggestions[j] ?>
+          </div>
+        <? } ?>
+      </div>
+    </div>
+    <? } ?>
+  </div>
