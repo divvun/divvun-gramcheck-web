@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Divvun grammar check for Sami languages add-on for Google Docs",
   "scripts": {
+    "clasp": "clasp",
+    "push": "clasp push",
+    "open": "clasp open",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -22,6 +25,7 @@
   "homepage": "https://github.com/divvun/divvun-gramcheck-web#readme",
   "devDependencies": {
     "@google/clasp": "^1.6.3",
-    "@types/google-apps-script": "0.0.32"
+    "@types/google-apps-script": "0.0.32",
+    "typescript": "2.9.2"
   }
 }
