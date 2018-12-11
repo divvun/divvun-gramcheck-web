@@ -15,7 +15,8 @@ Steps to build:
 
 1. npm install
 2. npm run clasp login
-3. npm run push
-4. npm run open
+3. npm run clasp create
+4. npm run push
+5. npm run open
 
 The last step will open the App Script in Google's online editor where you can select from the menu `Run > Test as add-on...`. There you can set the script to be available for your Google user for testing purposes.
