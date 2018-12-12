@@ -194,12 +194,15 @@ export default class App extends React.Component<AppProps, AppState> {
                         {loadingIndicator}
                     </div>
                 </div>
-
-                <GrammarErrorsList
-                    apiResults={this.state.apiResults}
-                    onCorrect={this.correct}
-                    onHighlight={this.highlight}
-                />
+                <div className='body'>
+                    <ErrorBoundary>
+                        <GrammarErrorsList
+                            apiResults={this.state.apiResultsByParagraph}
+                            onCorrect={this.correct}
+                            onHighlight={this.highlight}
+                        />
+                    </ErrorBoundary>
+                </div>
             </>
         );
     }
