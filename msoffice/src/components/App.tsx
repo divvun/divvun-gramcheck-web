@@ -155,6 +155,7 @@ export default class App extends React.Component<AppProps, AppState> {
             } catch (e) {
                 console.error(e);
                 this.showAppError('Cannot correct text. Rerun the check.');
+                this.runGrammarCheck();
             }
         });
     }
