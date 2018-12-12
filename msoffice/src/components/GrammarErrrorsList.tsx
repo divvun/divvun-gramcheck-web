@@ -15,6 +15,9 @@ export default class GrammarErrorsList extends React.Component<GrammarErrorsList
     }
 
     render() {
+        if (!this.props.apiResults) {
+            return null;
+        }
         const results: JSX.Element[] = this.props.apiResults.reduce((html: JSX.Element[], r, lineIndex) => {
             const suggestionsHtml = r.errs.map((e, errorIndex) => {
                 return (
