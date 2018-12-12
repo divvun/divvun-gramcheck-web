@@ -212,7 +212,7 @@ export default class App extends React.Component<AppProps, AppState> {
                     </div>
                 </div>
                 <div className='body'>
-                    <ErrorBoundary>
+                    <ErrorBoundary key={Math.random()}>
                         <GrammarErrorsList
                             apiResults={this.state.apiResultsByParagraph}
                             onCorrect={this.correct}
