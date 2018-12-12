@@ -19,8 +19,17 @@ export async function apiRequest(text: string, language: string): Promise<Gramma
         .post(`${apiUrl}${language}`)
         .set('Content-Type', 'application/json')
         .send({
-            text: text.replace(/\r\n/g, '\n').replace(/\r/g, '\n'),
+            text: normalizeLineEndings(text),
         });
 
     return response.body.results;
+}
+
+export function splitInParagraphs(text: string): string[] {
+    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    return normalizedText.split('\n');
+}
+
+function normalizeLineEndings(text: string): string {
+    return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }

@@ -2,8 +2,9 @@ import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
 import { PrimaryButton, IDropdownOption, Spinner } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { GrammarCheckApiResponse, apiRequest } from '../utils';
+import { GrammarCheckApiResponse, apiRequest, splitInParagraphs } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
+import ErrorBoundary from './ErrorBoundary';
 
 export interface AppProps {
     title: string;
@@ -13,7 +14,7 @@ export interface AppProps {
 export interface AppState {
     selectedLanguage: string | undefined;
     appErrorText: string | null;
-    apiResults: GrammarCheckApiResponse['results'];
+    apiResultsByParagraph: GrammarCheckApiResponse['results'];
     loading: boolean;
 }
 
@@ -23,7 +24,7 @@ export default class App extends React.Component<AppProps, AppState> {
         this.state = {
             selectedLanguage: undefined,
             appErrorText: null,
-            apiResults: [],
+            apiResultsByParagraph: [],
             loading: false,
         };
     }
@@ -41,18 +42,18 @@ export default class App extends React.Component<AppProps, AppState> {
     }
 
     getGrammarErrorText = (lineIndex: number, errorIndex: number): string => {
-        return this.state.apiResults[lineIndex].errs[errorIndex][0];
+        return this.state.apiResultsByParagraph[lineIndex].errs[errorIndex][0];
     }
 
     getSuggestion = (lineIndex: number, errorIndex: number, suggestionIndex: number): string => {
-        return this.state.apiResults[lineIndex].errs[errorIndex][5][suggestionIndex];
+        return this.state.apiResultsByParagraph[lineIndex].errs[errorIndex][5][suggestionIndex];
     }
 
     removeGrammarErrror = (lineIndex: number, errorIndex: number) => {
-        const newApiResults = this.state.apiResults.concat();
+        const newApiResults = this.state.apiResultsByParagraph.concat();
         newApiResults[lineIndex].errs.splice(errorIndex, 1);
         this.setState({
-            apiResults: newApiResults,
+            apiResultsByParagraph: newApiResults,
             appErrorText: null,
         });
     }
@@ -89,11 +90,24 @@ export default class App extends React.Component<AppProps, AppState> {
             context.load(body, 'text');
             try {
                 await context.sync();
-                const apiResults = await apiRequest(body.text, this.state.selectedLanguage);
+                const paragraphs = splitInParagraphs(body.text);
+                const language = this.state.selectedLanguage;
 
-                this.setState({
-                    apiResults,
-                });
+                for (let lineIndex = 0; lineIndex < paragraphs.length; lineIndex++) {
+                    const paragraph = paragraphs[lineIndex];
+                    const paragraphResults = await apiRequest(paragraph, language);
+                    let apiResultsByParagraph = this.state.apiResultsByParagraph.concat([]);
+
+                    if (paragraphResults.length > 0) {
+                        apiResultsByParagraph[lineIndex] = paragraphResults[0];
+                    } else if (apiResultsByParagraph.length > lineIndex) {
+                        apiResultsByParagraph = apiResultsByParagraph.splice(lineIndex, 1);
+                    }
+
+                    this.setState({
+                        apiResultsByParagraph: apiResultsByParagraph,
+                    });
+                }
             } catch (e) {
                 console.error(e);
                 this.showAppError('Could not get grammar check results');
