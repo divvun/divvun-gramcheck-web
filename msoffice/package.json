@@ -2,7 +2,7 @@
     "name": "sami-grammar-checker-ms-office-online",
     "description": "Sámi grammar checker for MS Office Online",
     "author": "Rostislav Raykov <rostislav@technocreatives.com>",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "scripts": {
         "clean": "rimraf dist && rimraf .awcache",
         "lint": "tslint --project tsconfig.json",

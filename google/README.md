@@ -9,14 +9,16 @@ The grammar checker is an add-on to Google Docs.
 
 # Development setup
 
-This uses [clasp](https://github.com/google/clasp) in order to build and deploy to Google's App Scripts backend.
+- Install [nvm](https://github.com/creationix/nvm)
+- Install a recent node, e.g. ```nvm install v10.14.2 && nvm use v10.14.2```
+- Install [clasp](https://github.com/google/clasp) in order to build and deploy to Google's App Scripts backend.
 
-Steps to build:
+Steps to build and deploy for your account on google:
 
-1. npm install
-2. npm run clasp login
-3. npm run clasp create
-4. npm run push
-5. npm run open
+- npm install
+- clasp login (this step will open a browser on your machine to do some verification)
+- clasp create
+- npm run push
+- npm run open
 
 The last step will open the App Script in Google's online editor where you can select from the menu `Run > Test as add-on...`. There you can set the script to be available for your Google user for testing purposes.
