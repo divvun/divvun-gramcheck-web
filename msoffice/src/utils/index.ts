@@ -33,3 +33,16 @@ export function splitInParagraphs(text: string): string[] {
 function normalizeLineEndings(text: string): string {
     return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
+
+export function getRange(context: Word.RequestContext, paragraph: string, errorText: string): Word.Range {
+    const body = context.document.body;
+    const paragraphRangeCollection = body.search(paragraph, {
+        matchCase: true,
+    });
+    const paragraphRange = paragraphRangeCollection.getFirst();
+    const errorTextRangeCollection = paragraphRange.search(errorText, {
+        matchCase: true,
+    });
+
+    return errorTextRangeCollection.getFirst();
+}

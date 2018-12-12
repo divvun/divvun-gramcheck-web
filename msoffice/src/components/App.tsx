@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
 import { PrimaryButton, IDropdownOption, Spinner } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { GrammarCheckApiResponse, apiRequest, splitInParagraphs } from '../utils';
+import { GrammarCheckApiResponse, apiRequest, splitInParagraphs, getRange } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -39,6 +39,10 @@ export default class App extends React.Component<AppProps, AppState> {
         this.setState({
             loading: false,
         });
+    }
+
+    getLineText = (lineIndex: number): string => {
+        return this.state.apiResultsByParagraph[lineIndex].text;
     }
 
     getGrammarErrorText = (lineIndex: number, errorIndex: number): string => {
@@ -121,12 +125,12 @@ export default class App extends React.Component<AppProps, AppState> {
         Word.run(async (context) => {
             try {
                 const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
-                const body = context.document.body;
-                const rangeCollection = body.search(errorText, {
-                    matchCase: true,
-                });
-                rangeCollection.getFirst().select(clear ? 'Start' : 'Select');
+                const paragraphText = this.getLineText(lineIndex);
+                const errorRange = getRange(context, paragraphText, errorText);
+
+                errorRange.select(clear ? 'Start' : 'Select');
                 await context.sync();
+
                 this.clearAppError();
             } catch (e) {
                 console.error(e);
@@ -139,15 +143,13 @@ export default class App extends React.Component<AppProps, AppState> {
         Word.run(async (context) => {
             try {
                 const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
+                const paragraphText = this.getLineText(lineIndex);
+                const errorRange = getRange(context, paragraphText, errorText);
+
                 const suggestion = this.getSuggestion(lineIndex, errorIndex, suggestionIndex);
 
-                const body = context.document.body;
-                const rangeCollection = body.search(errorText, {
-                    matchCase: true,
-                });
-                const range = rangeCollection.getFirst();
-                range.insertText(suggestion, 'Replace');
-                range.select('End');
+                errorRange.insertText(suggestion, 'Replace');
+                errorRange.select('End');
                 await context.sync();
 
                 this.removeGrammarErrror(lineIndex, errorIndex);
