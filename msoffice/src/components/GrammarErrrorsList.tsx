@@ -9,8 +9,8 @@ export interface GrammarErrorsListProps {
 }
 
 export default class GrammarErrorsList extends React.Component<GrammarErrorsListProps, {}> {
-    constructor(props, context) {
-        super(props, context);
+    constructor(props: GrammarErrorsListProps) {
+        super(props);
         this.state = {};
     }
 
