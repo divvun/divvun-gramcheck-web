@@ -16,6 +16,10 @@ module.exports = webpackMerge(commonConfig, {
             cert: fs.readFileSync('./certs/server.crt'),
             cacert: fs.readFileSync('./certs/ca.crt')
         },
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+        },
         compress: true,
         overlay: {
             warnings: false,
