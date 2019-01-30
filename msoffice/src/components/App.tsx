@@ -80,6 +80,37 @@ export default class App extends React.Component<AppProps, AppState> {
         });
     }
 
+    runParagraphGrammarCheck = async (paragraphIndex: number) => {
+        Word.run(async (context) => {
+            const body = context.document.body;
+            context.load(body, 'text');
+            try {
+                await context.sync();
+                const paragraphs = splitInParagraphs(body.text);
+                const language = this.state.selectedLanguage;
+
+                const paragraph = paragraphs[paragraphIndex];
+                const paragraphResults = await apiRequest(paragraph, language);
+                let apiResultsByParagraph = this.state.apiResultsByParagraph.concat([]);
+
+                if (paragraphResults.length > 0) {
+                    apiResultsByParagraph[paragraphIndex] = paragraphResults[0];
+                } else if (apiResultsByParagraph.length > paragraphIndex) {
+                    apiResultsByParagraph = apiResultsByParagraph.splice(paragraphIndex, 1);
+                }
+
+                this.setState({
+                    apiResultsByParagraph: apiResultsByParagraph,
+                });
+            } catch (e) {
+                console.error(e);
+                this.showAppError('Could not get grammar check results');
+            } finally {
+                this.stopLoading();
+            }
+        });
+    }
+
     runGrammarCheck = async () => {
         if (!this.state.selectedLanguage) {
             this.showAppError('No language selected');
@@ -151,13 +182,13 @@ export default class App extends React.Component<AppProps, AppState> {
                 errorRange.select('End');
 
                 this.removeGrammarErrror(lineIndex, errorIndex);
-                this.runGrammarCheck();
 
                 await context.sync();
+                this.runParagraphGrammarCheck(lineIndex);
             } catch (e) {
                 console.error(e);
                 this.showAppError('Cannot correct text. Rerun the check.');
-                this.runGrammarCheck();
+                this.runParagraphGrammarCheck(lineIndex);
             }
         });
     }
