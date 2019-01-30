@@ -28,7 +28,7 @@ export default class GrammarError extends React.Component<GrammarErrorProps> {
         return (
             <section
                 className='grammar-error'
-                onMouseOver={this.props.onHighlight.bind(this, this.props.lineIndex, this.props.errorIndex, false)}
+                onMouseEnter={this.props.onHighlight.bind(this, this.props.lineIndex, this.props.errorIndex, false)}
                 onMouseLeave={this.props.onHighlight.bind(this, this.props.lineIndex, this.props.errorIndex, true)}
             >
                 <div className='reason'>{ this.props.reason }</div>
