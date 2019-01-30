@@ -129,9 +129,8 @@ export default class App extends React.Component<AppProps, AppState> {
                 const errorRange = getRange(context, paragraphText, errorText);
 
                 errorRange.select(clear ? 'Start' : 'Select');
-                await context.sync();
-
                 this.clearAppError();
+                await context.sync();
             } catch (e) {
                 console.error(e);
                 this.showAppError('Cannot highlight error. Maybe the text changed?');
@@ -150,10 +149,11 @@ export default class App extends React.Component<AppProps, AppState> {
 
                 errorRange.insertText(suggestion, 'Replace');
                 errorRange.select('End');
-                await context.sync();
 
                 this.removeGrammarErrror(lineIndex, errorIndex);
                 this.runGrammarCheck();
+
+                await context.sync();
             } catch (e) {
                 console.error(e);
                 this.showAppError('Cannot correct text. Rerun the check.');
