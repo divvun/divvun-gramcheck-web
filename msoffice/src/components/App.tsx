@@ -80,38 +80,8 @@ export default class App extends React.Component<AppProps, AppState> {
         });
     }
 
-    runParagraphGrammarCheck = async (paragraphIndex: number) => {
-        Word.run(async (context) => {
-            const body = context.document.body;
-            context.load(body, 'text');
-            try {
-                await context.sync();
-                const paragraphs = splitInParagraphs(body.text);
-                const language = this.state.selectedLanguage;
-
-                const paragraph = paragraphs[paragraphIndex];
-                const paragraphResults = await apiRequest(paragraph, language);
-                let apiResultsByParagraph = this.state.apiResultsByParagraph.concat([]);
-
-                if (paragraphResults.length > 0) {
-                    apiResultsByParagraph[paragraphIndex] = paragraphResults[0];
-                } else if (apiResultsByParagraph.length > paragraphIndex) {
-                    apiResultsByParagraph = apiResultsByParagraph.splice(paragraphIndex, 1);
-                }
-
-                this.setState({
-                    apiResultsByParagraph: apiResultsByParagraph,
-                });
-            } catch (e) {
-                console.error(e);
-                this.showAppError('Could not get grammar check results');
-            } finally {
-                this.stopLoading();
-            }
-        });
-    }
-
-    runGrammarCheck = async () => {
+    runGrammarCheck = async (selectedParagraphIndex: number = -1) => {
+        console.log('dddddd', selectedParagraphIndex);
         if (!this.state.selectedLanguage) {
             this.showAppError('No language selected');
             return;
@@ -128,21 +98,29 @@ export default class App extends React.Component<AppProps, AppState> {
                 const paragraphs = splitInParagraphs(body.text);
                 const language = this.state.selectedLanguage;
 
-                for (let lineIndex = 0; lineIndex < paragraphs.length; lineIndex++) {
-                    const paragraph = paragraphs[lineIndex];
+                let paragraphIndex = 0;
+                let textEndIndex = paragraphs.length;
+                if (selectedParagraphIndex > -1) {
+                    paragraphIndex = selectedParagraphIndex;
+                    textEndIndex = paragraphIndex + 1;
+                }
+
+                let apiResultsByParagraph = this.state.apiResultsByParagraph.concat([]);
+
+                for (; paragraphIndex < textEndIndex; paragraphIndex++) {
+                    const paragraph = paragraphs[paragraphIndex];
                     const paragraphResults = await apiRequest(paragraph, language);
-                    let apiResultsByParagraph = this.state.apiResultsByParagraph.concat([]);
 
                     if (paragraphResults.length > 0) {
-                        apiResultsByParagraph[lineIndex] = paragraphResults[0];
-                    } else if (apiResultsByParagraph.length > lineIndex) {
-                        apiResultsByParagraph = apiResultsByParagraph.splice(lineIndex, 1);
+                        apiResultsByParagraph[paragraphIndex] = paragraphResults[0];
+                    } else if (apiResultsByParagraph.length > paragraphIndex) {
+                        apiResultsByParagraph = apiResultsByParagraph.splice(paragraphIndex, 1);
                     }
-
-                    this.setState({
-                        apiResultsByParagraph: apiResultsByParagraph,
-                    });
                 }
+
+                this.setState({
+                    apiResultsByParagraph: apiResultsByParagraph,
+                });
             } catch (e) {
                 console.error(e);
                 this.showAppError('Could not get grammar check results');
@@ -169,26 +147,26 @@ export default class App extends React.Component<AppProps, AppState> {
         });
     }
 
-    correct = (lineIndex: number, errorIndex: number, suggestionIndex: number) => {
+    correct = (paragraphIndex: number, errorIndex: number, suggestionIndex: number) => {
         Word.run(async (context) => {
             try {
-                const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
-                const paragraphText = this.getLineText(lineIndex);
+                const errorText = this.getGrammarErrorText(paragraphIndex, errorIndex);
+                const paragraphText = this.getLineText(paragraphIndex);
                 const errorRange = getRange(context, paragraphText, errorText);
 
-                const suggestion = this.getSuggestion(lineIndex, errorIndex, suggestionIndex);
+                const suggestion = this.getSuggestion(paragraphIndex, errorIndex, suggestionIndex);
 
                 errorRange.insertText(suggestion, 'Replace');
                 errorRange.select('End');
 
-                this.removeGrammarErrror(lineIndex, errorIndex);
+                this.removeGrammarErrror(paragraphIndex, errorIndex);
 
                 await context.sync();
-                this.runParagraphGrammarCheck(lineIndex);
+                this.runGrammarCheck(paragraphIndex);
             } catch (e) {
                 console.error(e);
                 this.showAppError('Cannot correct text. Rerun the check.');
-                this.runParagraphGrammarCheck(lineIndex);
+                this.runGrammarCheck(paragraphIndex);
             }
         });
     }
@@ -234,7 +212,7 @@ export default class App extends React.Component<AppProps, AppState> {
                     </div>
                     <div className='buttons'>
                         <PrimaryButton
-                            onClick={this.runGrammarCheck}
+                            onClick={this.runGrammarCheck.bind(this, -1)}
                             ariaDescription='Check grammar'
                         >
                             Check grammar
