@@ -92,6 +92,7 @@ export default class App extends React.Component<AppProps, AppState> {
         Word.run(async (context) => {
             const body = context.document.body;
             try {
+                context.load(body);
                 await context.sync();
                 const paragraphs = splitInParagraphs(body.text);
                 const language = this.state.selectedLanguage;
