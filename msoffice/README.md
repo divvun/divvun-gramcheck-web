@@ -18,6 +18,17 @@ Steps to run this in a development environment:
 1. npm install
 2. npm start
 
-This will have you running a local server at port 3000. Then you need to upload the manifest file to your
-Office Online in order to test the add-in. Follow the instructions on https://docs.microsoft.com/en-us/office/dev/add-ins/testing/sideload-office-add-ins-for-testing#sideload-an-office-add-in-in-office-online
-in order to do this.
+This will have you running a local server at port 3000. Then depending on which Word you want to test,
+you need to provide the `manifest.xml` file to Word in a different way.
+
+## Online
+
+You need to upload the manifest file in order to test the add-in. Follow the instructions on https://docs.microsoft.com/en-us/office/dev/add-ins/testing/sideload-office-add-ins-for-testing#sideload-an-office-add-in-in-office-online
+
+## iPad and Mac
+
+In order to provide your `manifest.xml` follow these instructions:
+https://docs.microsoft.com/en-us/office/dev/add-ins/testing/sideload-an-office-add-in-on-ipad-and-mac
+
+If you want to debug on the iPad or Mac, follow these instructions to get access to some debug tools and the console:
+https://docs.microsoft.com/en-us/office/dev/add-ins/testing/debug-office-add-ins-on-ipad-and-mac
