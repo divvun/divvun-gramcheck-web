@@ -81,7 +81,6 @@ export default class App extends React.Component<AppProps, AppState> {
     }
 
     runGrammarCheck = async (selectedParagraphIndex: number = -1) => {
-        console.log('dddddd', selectedParagraphIndex);
         if (!this.state.selectedLanguage) {
             this.showAppError('No language selected');
             return;
@@ -92,7 +91,6 @@ export default class App extends React.Component<AppProps, AppState> {
 
         Word.run(async (context) => {
             const body = context.document.body;
-            context.load(body, 'text');
             try {
                 await context.sync();
                 const paragraphs = splitInParagraphs(body.text);
