@@ -120,7 +120,7 @@ export default class App extends React.Component<AppProps, AppState> {
                     apiResultsByParagraph: apiResultsByParagraph,
                 });
             } catch (e) {
-                console.error(e);
+                console.error(e.message, e.debugInfo);
                 this.showAppError('Could not get grammar check results');
             } finally {
                 this.stopLoading();
@@ -139,7 +139,7 @@ export default class App extends React.Component<AppProps, AppState> {
                 this.clearAppError();
                 await context.sync();
             } catch (e) {
-                console.error(e);
+                console.error(e.message, e.debugInfo);
                 this.showAppError('Cannot highlight error. Maybe the text changed?');
             }
         });
@@ -162,7 +162,7 @@ export default class App extends React.Component<AppProps, AppState> {
                 await context.sync();
                 this.runGrammarCheck(paragraphIndex);
             } catch (e) {
-                console.error(e);
+                console.error(e.message, e.debugInfo);
                 this.showAppError('Cannot correct text. Rerun the check.');
                 this.runGrammarCheck(paragraphIndex);
             }
