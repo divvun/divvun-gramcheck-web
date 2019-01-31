@@ -134,7 +134,7 @@ export default class App extends React.Component<AppProps, AppState> {
             try {
                 const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
                 const paragraphText = this.getLineText(lineIndex);
-                const errorRange = getRange(context, paragraphText, errorText);
+                const errorRange = await getRange(context, paragraphText, errorText);
 
                 errorRange.select(clear ? 'Start' : 'Select');
                 this.clearAppError();
@@ -151,7 +151,7 @@ export default class App extends React.Component<AppProps, AppState> {
             try {
                 const errorText = this.getGrammarErrorText(paragraphIndex, errorIndex);
                 const paragraphText = this.getLineText(paragraphIndex);
-                const errorRange = getRange(context, paragraphText, errorText);
+                const errorRange = await getRange(context, paragraphText, errorText);
 
                 const suggestion = this.getSuggestion(paragraphIndex, errorIndex, suggestionIndex);
 

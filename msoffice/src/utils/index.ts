@@ -34,15 +34,69 @@ function normalizeLineEndings(text: string): string {
     return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
 
-export function getRange(context: Word.RequestContext, paragraph: string, errorText: string): Word.Range {
+export async function getRange(context: Word.RequestContext, paragraph: string, errorText: string): Promise<Word.Range> {
     const body = context.document.body;
-    const paragraphRangeCollection = body.search(paragraph, {
-        matchCase: true,
-    });
-    const paragraphRange = paragraphRangeCollection.getFirst();
-    const errorTextRangeCollection = paragraphRange.search(errorText, {
+    context.load(body);
+    await context.sync();
+
+    // NOTE: This had to be done because regex splitting is
+    // not working ok with some browsers
+    // And the reason it should be done like this is the desktop
+    // version of Word which unlike the online one
+    // cannot search for more than 255 chars at a time
+    const chunks = splitStringToChunks(paragraph, 255);
+
+    let fullRange: Word.Range | null = null;
+    for (let index = 0; index < chunks.length; index++) {
+        const chunk = chunks[index];
+        const paragraphRangeCollection = body.search(chunk, {
+            matchCase: true,
+        });
+
+        const paragraphRange = paragraphRangeCollection.getFirstOrNullObject();
+        if (!paragraphRange) {
+            return Promise.reject(new Error('Could not find range for chunk: ' + chunk));
+        }
+
+        if (!fullRange) {
+            fullRange = paragraphRange;
+        } else {
+            fullRange = fullRange.expandTo(paragraphRange);
+        }
+    }
+
+    if (!fullRange) {
+        return Promise.reject(new Error('Context parargaph not found'));
+    }
+
+    const errorTextRangeCollection = fullRange.search(errorText, {
         matchCase: true,
     });
 
-    return errorTextRangeCollection.getFirst();
+    const foundErrorRange = errorTextRangeCollection.getFirstOrNullObject();
+    if (!foundErrorRange) {
+        return Promise.reject(new Error('The range for the error wasn\'t found'));
+    }
+
+    return foundErrorRange;
+}
+
+function splitStringToChunks(string: string, chunkLength: number): string[] {
+    const chunks: string[] = [];
+
+    let tempString: string = '';
+    let counter: number = 1;
+    for (const char of string) {
+        if (counter > chunkLength) {
+            chunks.push(tempString);
+            tempString = '';
+            counter = 1;
+        }
+        tempString += char;
+        counter++;
+    }
+
+    chunks.push(tempString);
+
+    return chunks;
 }
