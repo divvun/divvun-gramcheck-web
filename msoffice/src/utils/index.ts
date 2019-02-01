@@ -3,7 +3,18 @@ import * as request from 'superagent';
 const apiUrl = 'https://divvun-api.brendan.so/grammar/';
 
 export function highlightError(text: string, errorText: string): string {
-    return text.replace(errorText, `<i>${errorText}</i>`);
+    const sentences = text.split('.');
+
+    for (const sentence of sentences) {
+        const errorTextPos = sentence.indexOf(errorText);
+        if (errorTextPos > -1) {
+            const cutStartIndex = sentence.substr(0, errorTextPos - 1).lastIndexOf(' ');
+            const cutEndIndex = sentence.indexOf(' ', errorTextPos + errorText.length + 1);
+            return sentence.substr(cutStartIndex, cutEndIndex - cutStartIndex).replace(errorText, `<i>${errorText}</i>`);
+        }
+    }
+
+    return text;
 }
 
 export type APIGrammarError = [string, number, number, string, string, string[]];
