@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as worker from '../utils/text.worker';
 
 export interface GrammarErrorProps {
     contextText: string;
@@ -11,14 +12,59 @@ export interface GrammarErrorProps {
     onHighlight(lineIndex: number, errorIndex: number, clear: boolean): void;
 }
 
-export default class GrammarError extends React.Component<GrammarErrorProps> {
+interface GrammarErrorState {
+    contextText: string;
+}
+
+export default class GrammarError extends React.Component<GrammarErrorProps, GrammarErrorState> {
+
+    constructor(props: GrammarErrorProps) {
+        super(props);
+        this.state = {
+            contextText: this.props.contextText,
+        };
+        this.extractContextWorker = (worker as any)() as typeof worker;
+    }
+
+    extractContextWorker = undefined;
+
+    componentDidMount() {
+        this.extractContextWorker.extractContext(this.props.contextText, this.props.errorText).then((result) => {
+            if (this.state.contextText !== result) {
+                this.setState({
+                    contextText: result,
+                });
+            }
+        }).catch((e) => {
+            console.error('Worker crashed', e);
+        });
+    }
+
+    componentWillUnmount() {
+        this.extractContextWorker.terminate();
+    }
+
+    highlight = (e: React.MouseEvent<HTMLElement>) => {
+        e.stopPropagation();
+        this.props.onHighlight(this.props.lineIndex, this.props.errorIndex, false);
+    }
+
+    clearHighlight = (e: React.MouseEvent<HTMLElement>) => {
+        e.stopPropagation();
+        this.props.onHighlight(this.props.lineIndex, this.props.errorIndex, true);
+    }
+
+    correct = (i: number) => {
+        this.props.onCorrect(this.props.lineIndex, this.props.errorIndex, i);
+    }
+
     render() {
         const suggestions = this.props.suggestions.map((suggestion, i) => {
             return (
                 <div
                     key={`suggestion-${i}`}
                     className='suggestion'
-                    onClick={this.props.onCorrect.bind(this, this.props.lineIndex, this.props.errorIndex, i)}
+                    onClick={this.correct.bind(this, i)}
                 >
                     { suggestion }
                 </div>
@@ -28,11 +74,11 @@ export default class GrammarError extends React.Component<GrammarErrorProps> {
         return (
             <section
                 className='grammar-error'
-                onMouseEnter={this.props.onHighlight.bind(this, this.props.lineIndex, this.props.errorIndex, false)}
-                onMouseLeave={this.props.onHighlight.bind(this, this.props.lineIndex, this.props.errorIndex, true)}
+                onMouseEnter={this.highlight.bind(this)}
+                onMouseLeave={this.clearHighlight.bind(this)}
             >
                 <div className='reason'>{ this.props.reason }</div>
-                <div className='context' dangerouslySetInnerHTML={{ __html: this.props.contextText }}/>
+                <div className='context' dangerouslySetInnerHTML={{ __html: this.state.contextText }}/>
                 <div className='suggestions-heading'>{ this.props.suggestions.length > 0 ? 'Suggested corrections' : '' }</div>
                 <div className='suggestions-list'>
                     {suggestions}
