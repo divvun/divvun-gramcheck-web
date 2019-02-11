@@ -8,8 +8,14 @@ export function highlightError(text: string, errorText: string): string {
     for (const sentence of sentences) {
         const errorTextPos = sentence.indexOf(errorText);
         if (errorTextPos > -1) {
-            const cutStartIndex = sentence.substr(0, errorTextPos - 1).lastIndexOf(' ');
-            const cutEndIndex = sentence.indexOf(' ', errorTextPos + errorText.length + 1);
+            let cutStartIndex = sentence.substr(0, errorTextPos - 1).lastIndexOf(' ');
+            if (cutStartIndex < 0) {
+                cutStartIndex = 0;
+            }
+            let cutEndIndex = sentence.indexOf(' ', errorTextPos + errorText.length + 1);
+            if (cutEndIndex < 0) {
+                cutEndIndex = sentence.length;
+            }
             return sentence.substr(cutStartIndex, cutEndIndex - cutStartIndex).replace(errorText, `<i>${errorText}</i>`);
         }
     }
