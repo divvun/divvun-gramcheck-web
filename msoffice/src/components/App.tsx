@@ -16,6 +16,7 @@ export interface AppState {
     appErrorText: string | null;
     apiResultsByParagraph: GrammarCheckApiResponse['results'];
     loading: boolean;
+    requestsCounter: number;
 }
 
 export default class App extends React.Component<AppProps, AppState> {
@@ -26,6 +27,7 @@ export default class App extends React.Component<AppProps, AppState> {
             appErrorText: null,
             apiResultsByParagraph: [],
             loading: false,
+            requestsCounter: 0,
         };
     }
 
@@ -78,6 +80,13 @@ export default class App extends React.Component<AppProps, AppState> {
         this.setState({
             selectedLanguage: option.key.toString(),
         });
+    }
+
+    runGrammarCheckOnWholeText = () => {
+        this.setState({
+            requestsCounter: this.state.requestsCounter + 1,
+        });
+        this.runGrammarCheck(-1);
     }
 
     runGrammarCheck = async (selectedParagraphIndex: number = -1) => {
@@ -211,7 +220,7 @@ export default class App extends React.Component<AppProps, AppState> {
                     </div>
                     <div className='buttons'>
                         <PrimaryButton
-                            onClick={this.runGrammarCheck.bind(this, -1)}
+                            onClick={this.runGrammarCheckOnWholeText}
                             ariaDescription='Check grammar'
                         >
                             Check grammar
@@ -220,7 +229,7 @@ export default class App extends React.Component<AppProps, AppState> {
                     </div>
                 </div>
                 <div className='body'>
-                    <ErrorBoundary key={Math.random()}>
+                    <ErrorBoundary key={this.state.requestsCounter}>
                         <GrammarErrorsList
                             apiResults={this.state.apiResultsByParagraph}
                             onCorrect={this.correct}
