@@ -32,6 +32,20 @@ const entry = {
 
 const rules = [
     {
+        test: /\.worker\.ts$/,
+        use: [
+            {
+                loader: 'workerize-loader',
+                options: {
+                    inline: true,
+                }
+            },
+            {
+                loader: 'ts-loader',
+            }
+        ]
+    },
+    {
         test: /\.tsx?$/,
         use: [
             'react-hot-loader/webpack',
@@ -62,7 +76,8 @@ const output = {
     path: path.resolve('dist'),
     publicPath: '/',
     filename: '[name].[hash].js',
-    chunkFilename: '[id].[hash].chunk.js'
+    chunkFilename: '[id].[hash].chunk.js',
+    globalObject: `(typeof self !== 'undefined' ? self : this)`,
 };
 
 const WEBPACK_PLUGINS = [
