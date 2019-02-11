@@ -10,7 +10,7 @@ module.exports = webpackMerge(commonConfig, {
     devServer: {
         publicPath: '/',
         contentBase: path.resolve('dist'),
-        hot: true,
+        hot: false,
         https: {
             key: fs.readFileSync('./certs/server.key'),
             cert: fs.readFileSync('./certs/server.crt'),
@@ -29,6 +29,6 @@ module.exports = webpackMerge(commonConfig, {
         historyApiFallback: true,
     },
     plugins: [
-        new webpack.HotModuleReplacementPlugin()
+        // new webpack.HotModuleReplacementPlugin()
     ]
 });
