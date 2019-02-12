@@ -2,7 +2,7 @@ import * as request from 'superagent';
 
 const apiUrl = 'https://divvun-api.brendan.so/grammar/';
 
-export function highlightError(text: string, errorText: string): string {
+export function clipToErrorContext(text: string, errorText: string): string {
     const sentences = text.split('.');
 
     for (const sentence of sentences) {
@@ -16,7 +16,7 @@ export function highlightError(text: string, errorText: string): string {
             if (cutEndIndex < 0) {
                 cutEndIndex = sentence.length;
             }
-            return sentence.substr(cutStartIndex, cutEndIndex - cutStartIndex).replace(errorText, `<i>${errorText}</i>`);
+            return sentence.substr(cutStartIndex, cutEndIndex - cutStartIndex);
         }
     }
 
