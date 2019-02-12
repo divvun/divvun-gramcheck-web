@@ -44,10 +44,18 @@ body {
             flex-direction: row;
             align-items: center;
         }
+    }
 
-        .loading-indicator {
-            margin-left: 15px;    
-        }
+    .loading-overlay {
+        z-index: 999;
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    .loading-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
     }
 
     .body {

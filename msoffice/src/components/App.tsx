@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
-import { PrimaryButton, IDropdownOption, Spinner } from 'office-ui-fabric-react';
+import { PrimaryButton, IDropdownOption, Spinner, Overlay, SpinnerSize } from 'office-ui-fabric-react';
 import Progress from './Progress';
 import { GrammarCheckApiResponse, apiRequest, splitInParagraphs, getRange, debounce } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
@@ -195,11 +195,16 @@ export default class App extends React.Component<AppProps, AppState> {
             );
         }
 
-        const loadingIndicator = this.state.loading ? (
-            <Spinner
-                className='loading-indicator'
-                ariaLabel='Running grammar checker'
-            />
+        const loadingOverlay = this.state.loading ? (
+            <Overlay className='loading-overlay'>
+                <Spinner
+                    size={SpinnerSize.large} 
+                    label='Running grammar checker...'
+                    ariaLive='assertive'
+                    className='loading-indicator'
+                    ariaLabel='Running grammar checker...'
+                />
+            </Overlay>
         ) : null;
 
         return (
@@ -225,7 +230,6 @@ export default class App extends React.Component<AppProps, AppState> {
                         >
                             Check grammar
                         </PrimaryButton>
-                        {loadingIndicator}
                     </div>
                 </div>
                 <div className='body'>
@@ -237,6 +241,7 @@ export default class App extends React.Component<AppProps, AppState> {
                         />
                     </ErrorBoundary>
                 </div>
+                {loadingOverlay}
             </>
         );
     }
