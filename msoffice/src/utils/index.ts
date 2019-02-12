@@ -5,7 +5,13 @@ const apiUrl = 'https://divvun-api.brendan.so/grammar/';
 export function clipToErrorContext(text: string, errorText: string): string {
     const sentences = text.split('.');
 
-    for (const sentence of sentences) {
+    for (let sentence of sentences) {
+        if (errorText.indexOf('.') === 0) {
+            sentence = '.' + sentence;
+        }
+        if (errorText.lastIndexOf('.') > -1) {
+            sentence += '.';
+        }
         const errorTextPos = sentence.indexOf(errorText);
         if (errorTextPos > -1) {
             let cutStartIndex = sentence.substr(0, errorTextPos - 1).lastIndexOf(' ');
