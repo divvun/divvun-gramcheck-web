@@ -117,3 +117,29 @@ function splitStringToChunks(string: string, chunkLength: number): string[] {
 
     return chunks;
 }
+
+// NOTE: lazily assisted by https://john-dugan.com/javascript-debounce/
+export function debounce(func: Function, wait: number, immediate: boolean = false) {
+    let timeout: number | null;
+
+    return function() {
+        const context = this;
+        const args = arguments;
+
+        const later = () => {
+            timeout = null;
+            if (!immediate) {
+                func.apply(context, args);
+            }
+        };
+
+        const callNow = immediate && !timeout;
+
+        window.clearTimeout(timeout);
+
+        timeout = window.setTimeout(later, wait || 200);
+        if (callNow) {
+            func.apply(context, args);
+        }
+    };
+}

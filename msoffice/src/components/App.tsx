@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
 import { PrimaryButton, IDropdownOption, Spinner } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { GrammarCheckApiResponse, apiRequest, splitInParagraphs, getRange } from '../utils';
+import { GrammarCheckApiResponse, apiRequest, splitInParagraphs, getRange, debounce } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -138,7 +138,7 @@ export default class App extends React.Component<AppProps, AppState> {
         });
     }
 
-    highlight = (lineIndex: number, errorIndex: number, clear: boolean = false) => {
+    highlight = debounce((lineIndex: number, errorIndex: number, clear: boolean = false) => {
         Word.run(async (context) => {
             try {
                 const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
@@ -153,7 +153,7 @@ export default class App extends React.Component<AppProps, AppState> {
                 this.showAppError('Cannot highlight error. Maybe the text changed?');
             }
         });
-    }
+    }, 150);
 
     correct = (paragraphIndex: number, errorIndex: number, suggestionIndex: number) => {
         Word.run(async (context) => {
