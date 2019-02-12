@@ -79,9 +79,7 @@ export default class GrammarError extends React.Component<GrammarErrorProps, Gra
                 onMouseLeave={this.clearHighlight.bind(this)}
             >
                 <div className='reason'>{ this.props.reason }</div>
-                <div className='context'>
-                    <Highlighter search={this.props.errorText}>{this.state.contextText}</Highlighter>
-                </div>
+                <Highlighter className='context' search={this.props.errorText}>{this.state.contextText}</Highlighter>
                 <div className='suggestions-heading'>{ this.props.suggestions.length > 0 ? 'Suggested corrections' : '' }</div>
                 <div className='suggestions-list'>
                     {suggestions}
