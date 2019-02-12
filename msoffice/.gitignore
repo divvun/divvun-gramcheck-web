@@ -61,6 +61,7 @@ bin
 
 node_modules/**
 packages/**
-typings/**
 .vscode/**
 .awcache/**
+
+dist/

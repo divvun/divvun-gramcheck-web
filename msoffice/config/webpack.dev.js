@@ -6,14 +6,19 @@ const commonConfig = require('./webpack.common.js');
 
 module.exports = webpackMerge(commonConfig, {
     devtool: 'eval-source-map',
+    mode: 'development',
     devServer: {
         publicPath: '/',
         contentBase: path.resolve('dist'),
-        hot: true,
+        hot: false,
         https: {
             key: fs.readFileSync('./certs/server.key'),
             cert: fs.readFileSync('./certs/server.crt'),
             cacert: fs.readFileSync('./certs/ca.crt')
+        },
+        headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
         },
         compress: true,
         overlay: {
@@ -24,6 +29,6 @@ module.exports = webpackMerge(commonConfig, {
         historyApiFallback: true,
     },
     plugins: [
-        new webpack.HotModuleReplacementPlugin()
+        // new webpack.HotModuleReplacementPlugin()
     ]
 });

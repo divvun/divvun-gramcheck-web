@@ -3,7 +3,7 @@ const path = require('path');
 const package = require('../package.json');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const ExtractTextPlugin = require('extract-text-webpack-plugin');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const autoprefixer = require('autoprefixer');
 
 const build = (() => {
@@ -31,6 +31,20 @@ const entry = {
 };
 
 const rules = [
+    {
+        test: /\.worker\.ts$/,
+        use: [
+            {
+                loader: 'workerize-loader',
+                options: {
+                    inline: true,
+                }
+            },
+            {
+                loader: 'ts-loader',
+            }
+        ]
+    },
     {
         test: /\.tsx?$/,
         use: [
@@ -62,12 +76,11 @@ const output = {
     path: path.resolve('dist'),
     publicPath: '/',
     filename: '[name].[hash].js',
-    chunkFilename: '[id].[hash].chunk.js'
+    chunkFilename: '[id].[hash].chunk.js',
+    globalObject: `(typeof self !== 'undefined' ? self : this)`,
 };
 
 const WEBPACK_PLUGINS = [
-    new webpack.NamedModulesPlugin(),
-    new webpack.NoEmitOnErrorsPlugin(),
     new webpack.BannerPlugin({ banner: `${build.name} v.${build.version} (${build.timestamp}) © ${build.author}` }),
     new webpack.DefinePlugin({
         ENVIRONMENT: JSON.stringify({
@@ -83,11 +96,6 @@ const WEBPACK_PLUGINS = [
                 minimize: true
             }
         }
-    }),
-    new webpack.optimize.CommonsChunkPlugin({
-        name: 'vendor',
-        minChunks: Infinity,
-        chunks: ['app']
     })
 ];
 
@@ -101,9 +109,18 @@ module.exports = {
     module: {
         rules,
     },
+    optimization: {
+        noEmitOnErrors: true,
+        namedModules: true,
+        splitChunks: {
+            name: 'vendor',
+            minChunks: Infinity,
+            chunks: 'all',
+        }
+    },
     plugins: [
         ...WEBPACK_PLUGINS,
-        new ExtractTextPlugin('[name].[hash].css'),
+        new MiniCssExtractPlugin('[name].[hash].css'),
         new HtmlWebpackPlugin({
             title: 'Sami Grammar Checker',
             filename: 'index.html',

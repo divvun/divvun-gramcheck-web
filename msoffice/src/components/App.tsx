@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
 import { PrimaryButton, IDropdownOption, Spinner } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { GrammarCheckApiResponse, apiRequest, splitInParagraphs, getRange } from '../utils';
+import { GrammarCheckApiResponse, apiRequest, splitInParagraphs, getRange, debounce } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -16,6 +16,7 @@ export interface AppState {
     appErrorText: string | null;
     apiResultsByParagraph: GrammarCheckApiResponse['results'];
     loading: boolean;
+    requestsCounter: number;
 }
 
 export default class App extends React.Component<AppProps, AppState> {
@@ -26,6 +27,7 @@ export default class App extends React.Component<AppProps, AppState> {
             appErrorText: null,
             apiResultsByParagraph: [],
             loading: false,
+            requestsCounter: 0,
         };
     }
 
@@ -80,7 +82,14 @@ export default class App extends React.Component<AppProps, AppState> {
         });
     }
 
-    runGrammarCheck = async () => {
+    runGrammarCheckOnWholeText = () => {
+        this.setState({
+            requestsCounter: this.state.requestsCounter + 1,
+        });
+        this.runGrammarCheck(-1);
+    }
+
+    runGrammarCheck = async (selectedParagraphIndex: number = -1) => {
         if (!this.state.selectedLanguage) {
             this.showAppError('No language selected');
             return;
@@ -91,29 +100,37 @@ export default class App extends React.Component<AppProps, AppState> {
 
         Word.run(async (context) => {
             const body = context.document.body;
-            context.load(body, 'text');
             try {
+                context.load(body);
                 await context.sync();
                 const paragraphs = splitInParagraphs(body.text);
                 const language = this.state.selectedLanguage;
 
-                for (let lineIndex = 0; lineIndex < paragraphs.length; lineIndex++) {
-                    const paragraph = paragraphs[lineIndex];
+                let paragraphIndex = 0;
+                let textEndIndex = paragraphs.length;
+                if (selectedParagraphIndex > -1) {
+                    paragraphIndex = selectedParagraphIndex;
+                    textEndIndex = paragraphIndex + 1;
+                }
+
+                let apiResultsByParagraph = this.state.apiResultsByParagraph.concat([]);
+
+                for (; paragraphIndex < textEndIndex; paragraphIndex++) {
+                    const paragraph = paragraphs[paragraphIndex];
                     const paragraphResults = await apiRequest(paragraph, language);
-                    let apiResultsByParagraph = this.state.apiResultsByParagraph.concat([]);
 
                     if (paragraphResults.length > 0) {
-                        apiResultsByParagraph[lineIndex] = paragraphResults[0];
-                    } else if (apiResultsByParagraph.length > lineIndex) {
-                        apiResultsByParagraph = apiResultsByParagraph.splice(lineIndex, 1);
+                        apiResultsByParagraph[paragraphIndex] = paragraphResults[0];
+                    } else if (apiResultsByParagraph.length > paragraphIndex) {
+                        apiResultsByParagraph = apiResultsByParagraph.splice(paragraphIndex, 1);
                     }
-
-                    this.setState({
-                        apiResultsByParagraph: apiResultsByParagraph,
-                    });
                 }
+
+                this.setState({
+                    apiResultsByParagraph: apiResultsByParagraph,
+                });
             } catch (e) {
-                console.error(e);
+                console.error(e.message, e.debugInfo);
                 this.showAppError('Could not get grammar check results');
             } finally {
                 this.stopLoading();
@@ -121,43 +138,43 @@ export default class App extends React.Component<AppProps, AppState> {
         });
     }
 
-    highlight = (lineIndex: number, errorIndex: number, clear: boolean = false) => {
+    highlight = debounce((lineIndex: number, errorIndex: number, clear: boolean = false) => {
         Word.run(async (context) => {
             try {
                 const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
                 const paragraphText = this.getLineText(lineIndex);
-                const errorRange = getRange(context, paragraphText, errorText);
+                const errorRange = await getRange(context, paragraphText, errorText);
 
                 errorRange.select(clear ? 'Start' : 'Select');
-                await context.sync();
-
                 this.clearAppError();
+                await context.sync();
             } catch (e) {
-                console.error(e);
+                console.error(e.message, e.debugInfo);
                 this.showAppError('Cannot highlight error. Maybe the text changed?');
             }
         });
-    }
+    }, 150);
 
-    correct = (lineIndex: number, errorIndex: number, suggestionIndex: number) => {
+    correct = (paragraphIndex: number, errorIndex: number, suggestionIndex: number) => {
         Word.run(async (context) => {
             try {
-                const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
-                const paragraphText = this.getLineText(lineIndex);
-                const errorRange = getRange(context, paragraphText, errorText);
+                const errorText = this.getGrammarErrorText(paragraphIndex, errorIndex);
+                const paragraphText = this.getLineText(paragraphIndex);
+                const errorRange = await getRange(context, paragraphText, errorText);
 
-                const suggestion = this.getSuggestion(lineIndex, errorIndex, suggestionIndex);
+                const suggestion = this.getSuggestion(paragraphIndex, errorIndex, suggestionIndex);
 
                 errorRange.insertText(suggestion, 'Replace');
                 errorRange.select('End');
-                await context.sync();
 
-                this.removeGrammarErrror(lineIndex, errorIndex);
-                this.runGrammarCheck();
+                this.removeGrammarErrror(paragraphIndex, errorIndex);
+
+                await context.sync();
+                this.runGrammarCheck(paragraphIndex);
             } catch (e) {
-                console.error(e);
+                console.error(e.message, e.debugInfo);
                 this.showAppError('Cannot correct text. Rerun the check.');
-                this.runGrammarCheck();
+                this.runGrammarCheck(paragraphIndex);
             }
         });
     }
@@ -203,7 +220,7 @@ export default class App extends React.Component<AppProps, AppState> {
                     </div>
                     <div className='buttons'>
                         <PrimaryButton
-                            onClick={this.runGrammarCheck}
+                            onClick={this.runGrammarCheckOnWholeText}
                             ariaDescription='Check grammar'
                         >
                             Check grammar
@@ -212,7 +229,7 @@ export default class App extends React.Component<AppProps, AppState> {
                     </div>
                 </div>
                 <div className='body'>
-                    <ErrorBoundary>
+                    <ErrorBoundary key={this.state.requestsCounter}>
                         <GrammarErrorsList
                             apiResults={this.state.apiResultsByParagraph}
                             onCorrect={this.correct}

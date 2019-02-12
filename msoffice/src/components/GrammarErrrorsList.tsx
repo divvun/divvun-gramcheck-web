@@ -1,6 +1,6 @@
 import * as React from 'react';
 import GrammarError from './GrammarError';
-import { highlightError, GrammarCheckApiResponse } from '../utils';
+import { GrammarCheckApiResponse } from '../utils/index';
 
 export interface GrammarErrorsListProps {
     apiResults: GrammarCheckApiResponse['results'];
@@ -9,18 +9,21 @@ export interface GrammarErrorsListProps {
 }
 
 export default class GrammarErrorsList extends React.Component<GrammarErrorsListProps, {}> {
-    constructor(props, context) {
-        super(props, context);
-        this.state = {};
+    constructor(props: GrammarErrorsListProps) {
+        super(props);
     }
 
     render() {
+        if (!this.props.apiResults) {
+            return null;
+        }
+
         const results: JSX.Element[] = this.props.apiResults.reduce((html: JSX.Element[], r, lineIndex) => {
             const suggestionsHtml = r.errs.map((e, errorIndex) => {
                 return (
                     <GrammarError
                         key={`grammar-error-${lineIndex}-${errorIndex}`}
-                        contextText={highlightError(r.text, e[0])}
+                        contextText={r.text}
                         errorText={e[0]}
                         reason={e[4]}
                         lineIndex={lineIndex}
