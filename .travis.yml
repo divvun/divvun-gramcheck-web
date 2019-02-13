@@ -7,8 +7,7 @@ install:
   - cd msoffice
   - npm ci
 script:
-  - cd msoffice
-  - npm run validate
+#  - cd msoffice
+#  - npm run validate
   - npm run lint
   - npm run build
-
