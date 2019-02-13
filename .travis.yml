@@ -1,0 +1,14 @@
+os: linux
+dist: xenial
+language: node_js
+node_js:
+  - "node"
+install:
+  - cd msoffice
+  - npm ci
+script:
+  - cd msoffice
+  - npm run validate
+  - npm run lint
+  - npm run build
+
