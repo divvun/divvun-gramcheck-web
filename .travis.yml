@@ -4,19 +4,19 @@ language: node_js
 node_js:
   - "node"
 install:
-  - cd $HOME/msoffice
+  - cd $TRAVIS_BUILD_DIR/msoffice
   - npm ci
 script:
-  - cd $HOME/msoffice
+  - cd $TRAVIS_BUILD_DIR/msoffice
 #  - npm run validate
 #  - npm run lint
   - npm run build
 before_deploy:
-  - cd $HOME/msoffice
+  - cd $TRAVIS_BUILD_DIR/msoffice
   - cp Manifest.xml dist/
   - cd dist
   - zip -r9 msoffice-$TRAVIS_BRANCH.zip .
-  - mv msoffice-$TRAVIS_BRANCH.zip $HOME
+  - mv msoffice-$TRAVIS_BRANCH.zip $TRAVIS_BUILD_DIR
 # todo: deploy somewhere
 deploy:
   skip_cleanup: true
