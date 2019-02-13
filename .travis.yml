@@ -4,10 +4,21 @@ language: node_js
 node_js:
   - "node"
 install:
-  - cd msoffice
+  - cd $HOME/msoffice
   - npm ci
 script:
-#  - cd msoffice
+  - cd $HOME/msoffice
 #  - npm run validate
-  - npm run lint
+#  - npm run lint
   - npm run build
+before_deploy:
+  - cd $HOME/msoffice
+  - cp Manifest.xml dist/
+  - cd dist
+  - zip -r9 msoffice-$TRAVIS_BRANCH.zip .
+  - mv msoffice-$TRAVIS_BRANCH.zip $HOME
+# todo: deploy somewhere
+deploy:
+  skip_cleanup: true
+#  on:
+#    branch: master
