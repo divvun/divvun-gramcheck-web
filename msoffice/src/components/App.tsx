@@ -198,7 +198,7 @@ export default class App extends React.Component<AppProps, AppState> {
         const loadingOverlay = this.state.loading ? (
             <Overlay className='loading-overlay'>
                 <Spinner
-                    size={SpinnerSize.large} 
+                    size={SpinnerSize.large}
                     label='Running grammar checker...'
                     ariaLive='assertive'
                     className='loading-indicator'
