@@ -139,6 +139,9 @@ module.exports = {
                 ignore: ['*.scss'],
                 to: 'assets',
             }
-        ])
+        ]),
+        new webpack.ProvidePlugin({
+            Promise: 'bluebird',
+        }),
     ]
 };
