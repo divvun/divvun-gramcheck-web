@@ -1,4 +1,4 @@
-Promise = require('bluebird');
+global.Promise = require('bluebird');
 
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
