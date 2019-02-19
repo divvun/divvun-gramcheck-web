@@ -1,4 +1,5 @@
 import 'whatwg-fetch';
+import * as BluebirdPromise from 'bluebird';
 
 const apiUrl = 'https://divvun-api.brendan.so/grammar/';
 
@@ -37,7 +38,7 @@ export interface GrammarCheckApiResponse {
     }[];
 }
 
-export async function apiRequest(text: string, language: string): Promise<GrammarCheckApiResponse['results']>  {
+export async function apiRequest(text: string, language: string): BluebirdPromise<GrammarCheckApiResponse['results']>  {
     const response = await fetch(`${apiUrl}${language}`, {
         method: 'POST',
         headers: {
@@ -52,7 +53,7 @@ export async function apiRequest(text: string, language: string): Promise<Gramma
         const parsedResponse = await response.json();
         return parsedResponse.results;
     } catch (e) {
-        return Promise.reject(e);
+        return BluebirdPromise.reject(e);
     }
 }
 
@@ -65,7 +66,7 @@ function normalizeLineEndings(text: string): string {
     return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
 
-export async function getRange(context: Word.RequestContext, paragraph: string, errorText: string): Promise<Word.Range> {
+export async function getRange(context: Word.RequestContext, paragraph: string, errorText: string): BluebirdPromise<Word.Range> {
     const body = context.document.body;
     context.load(body);
     await context.sync();
@@ -86,7 +87,7 @@ export async function getRange(context: Word.RequestContext, paragraph: string, 
 
         const paragraphRange = paragraphRangeCollection.getFirstOrNullObject();
         if (!paragraphRange) {
-            return Promise.reject(new Error('Could not find range for chunk: ' + chunk));
+            return BluebirdPromise.reject(new Error('Could not find range for chunk: ' + chunk));
         }
 
         if (!fullRange) {
@@ -97,7 +98,7 @@ export async function getRange(context: Word.RequestContext, paragraph: string, 
     }
 
     if (!fullRange) {
-        return Promise.reject(new Error('Context parargaph not found'));
+        return BluebirdPromise.reject(new Error('Context parargaph not found'));
     }
 
     const errorTextRangeCollection = fullRange.search(errorText, {
@@ -106,7 +107,7 @@ export async function getRange(context: Word.RequestContext, paragraph: string, 
 
     const foundErrorRange = errorTextRangeCollection.getFirstOrNullObject();
     if (!foundErrorRange) {
-        return Promise.reject(new Error('The range for the error wasn\'t found'));
+        return BluebirdPromise.reject(new Error('The range for the error wasn\'t found'));
     }
 
     return foundErrorRange;
