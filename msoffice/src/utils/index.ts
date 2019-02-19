@@ -1,3 +1,5 @@
+import 'whatwg-fetch';
+
 const apiUrl = 'https://divvun-api.brendan.so/grammar/';
 
 export function clipToErrorContext(text: string, errorText: string): string {

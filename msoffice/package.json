@@ -17,11 +17,12 @@
     },
     "dependencies": {
         "@microsoft/office-js-helpers": "^1.0.1",
-        "core-js": "^2.5.3",
+        "core-js": "^2.6.5",
         "office-ui-fabric-react": "^5.51.0",
         "react": "^16.2.0",
         "react-dom": "^16.2.0",
-        "react-highlighter": "^0.4.3"
+        "react-highlighter": "^0.4.3",
+        "whatwg-fetch": "^3.0.0"
     },
     "devDependencies": {
         "@types/office-js": "^0.0.155",
