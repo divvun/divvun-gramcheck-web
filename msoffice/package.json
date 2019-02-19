@@ -17,7 +17,7 @@
     },
     "dependencies": {
         "@microsoft/office-js-helpers": "^1.0.1",
-        "core-js": "^2.6.5",
+        "bluebird": "^3.5.3",
         "office-ui-fabric-react": "^5.51.0",
         "react": "^16.2.0",
         "react-dom": "^16.2.0",
@@ -25,6 +25,7 @@
         "whatwg-fetch": "^3.0.0"
     },
     "devDependencies": {
+        "@types/bluebird": "^3.5.25",
         "@types/office-js": "^0.0.155",
         "@types/react": "^16.8.2",
         "@types/react-dom": "^16.8.0",
