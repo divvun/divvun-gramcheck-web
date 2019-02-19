@@ -6,7 +6,7 @@
         "url": "https://github.com/divvun/divvun-gramcheck-web.git"
     },
     "license": "GPL-3.0-only",
-    "version": "1.2.1",
+    "version": "1.2.2",
     "scripts": {
         "clean": "rimraf dist && rimraf .awcache",
         "lint": "tslint --project tsconfig.json",
@@ -17,19 +17,18 @@
     },
     "dependencies": {
         "@microsoft/office-js-helpers": "^1.0.1",
-        "core-js": "^2.5.3",
+        "core-js": "^2.6.5",
         "office-ui-fabric-react": "^5.51.0",
         "react": "^16.2.0",
         "react-dom": "^16.2.0",
         "react-highlighter": "^0.4.3",
-        "superagent": "^4.0.0"
+        "whatwg-fetch": "^3.0.0"
     },
     "devDependencies": {
-        "@types/office-js": "^0.0.51",
+        "@types/office-js": "^0.0.155",
         "@types/react": "^16.8.2",
         "@types/react-dom": "^16.8.0",
         "@types/react-hot-loader": "^3.0.6",
-        "@types/superagent": "^3.8.4",
         "@types/webpack": "2.2.12",
         "@types/webpack-dev-server": "1.12.6",
         "@types/webpack-env": "^1.13.7",

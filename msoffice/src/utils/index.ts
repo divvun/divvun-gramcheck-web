@@ -1,4 +1,4 @@
-import * as request from 'superagent';
+import 'whatwg-fetch';
 
 const apiUrl = 'https://divvun-api.brendan.so/grammar/';
 
@@ -38,14 +38,22 @@ export interface GrammarCheckApiResponse {
 }
 
 export async function apiRequest(text: string, language: string): Promise<GrammarCheckApiResponse['results']>  {
-    const response = await request
-        .post(`${apiUrl}${language}`)
-        .set('Content-Type', 'application/json')
-        .send({
+    const response = await fetch(`${apiUrl}${language}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
             text: normalizeLineEndings(text),
-        });
+        }),
+    });
 
-    return response.body.results;
+    try {
+        const parsedResponse = await response.json();
+        return parsedResponse.results;
+    } catch (e) {
+        return Promise.reject(e);
+    }
 }
 
 export function splitInParagraphs(text: string): string[] {
