@@ -2,7 +2,7 @@
  * @OnlyCurrentDoc Limits the script to only accessing the current sheet.
  */
 
-const apiUrl = 'http://divvun-api.brendan.so/grammar/';
+const apiUrl = 'https://divvun-api.brendan.so/grammar/';
 
 function onOpen(e) {
     DocumentApp.getUi().createAddonMenu()
