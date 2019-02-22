@@ -67,18 +67,34 @@ function runGrammarCheck(lang: string) {
 }
 
 function highlightError(text: string, errorText: string): string {
-    return text.replace(errorText, `<i>${errorText}</i>`);
+    return clipContextText(text, errorText).replace(errorText, `<i>${errorText}</i>`);
 }
 
 function clipContextText(text: string, errorText: string): string {
-    let contextSentence = text;
-    text.split('.').forEach((sentence) => {
-        if (sentence.indexOf(errorText) > -1) {
-            contextSentence = sentence;
-        }
-    });
+    const sentences = text.split('.');
 
-    return contextSentence;
+    for (let sentence of sentences) {
+        if (errorText.indexOf('.') === 0) {
+            sentence = '.' + sentence;
+        }
+        if (errorText.lastIndexOf('.') > -1) {
+            sentence += '.';
+        }
+        const errorTextPos = sentence.indexOf(errorText);
+        if (errorTextPos > -1) {
+            let cutStartIndex = sentence.substr(0, errorTextPos - 1).lastIndexOf(' ');
+            if (cutStartIndex < 0) {
+                cutStartIndex = 0;
+            }
+            let cutEndIndex = sentence.indexOf(' ', errorTextPos + errorText.length + 1);
+            if (cutEndIndex < 0) {
+                cutEndIndex = sentence.length;
+            }
+            return sentence.substr(cutStartIndex, cutEndIndex - cutStartIndex);
+        }
+    }
+
+    return text;
 }
 
 type APIGrammarError = [string, number, number, string, string, string[]];
