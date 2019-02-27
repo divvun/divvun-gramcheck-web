@@ -3,7 +3,7 @@ import GrammarError from './GrammarError';
 import { GrammarCheckApiResponse } from '../utils/index';
 
 export interface GrammarErrorsListProps {
-    apiResults: GrammarCheckApiResponse['results'];
+    apiResults: GrammarCheckApiResponse[];
     onCorrect(lineIndex: number, errorIndex: number, suggestionIndex: number): void;
     onHighlight(lineIndex: number, errorIndex: number, clear: boolean): void;
 }
@@ -24,11 +24,11 @@ export default class GrammarErrorsList extends React.Component<GrammarErrorsList
                     <GrammarError
                         key={`grammar-error-${lineIndex}-${errorIndex}`}
                         contextText={r.text}
-                        errorText={e[0]}
-                        reason={e[4]}
+                        errorText={e.error_text}
+                        reason={e.description}
                         lineIndex={lineIndex}
                         errorIndex={errorIndex}
-                        suggestions={e[5]}
+                        suggestions={e.suggestions}
                         onCorrect={this.props.onCorrect}
                         onHighlight={this.props.onHighlight}
                     />

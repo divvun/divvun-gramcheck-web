@@ -1,6 +1,6 @@
 import 'whatwg-fetch';
 
-const apiUrl = 'https://divvun-api.brendan.so/grammar/';
+const apiUrl = 'https://api-giellalt.uit.no/grammar/';
 
 export function clipToErrorContext(text: string, errorText: string): string {
     const sentences = text.split('.');
@@ -29,15 +29,23 @@ export function clipToErrorContext(text: string, errorText: string): string {
     return text;
 }
 
-export type APIGrammarError = [string, number, number, string, string, string[]];
-export interface GrammarCheckApiResponse {
-    results: {
-        text: string;
-        errs: APIGrammarError[];
-    }[];
+// export type APIGrammarError = [string, number, number, string, string, string[]];
+
+export interface APIGrammarError {
+    error_text: string;
+    start_index: number;
+    end_index: number;
+    error_code: string;
+    description: string;
+    suggestions: string[];
 }
 
-export async function apiRequest(text: string, language: string): Promise<GrammarCheckApiResponse['results']>  {
+export interface GrammarCheckApiResponse {
+    text: string;
+    errs: APIGrammarError[];
+}
+
+export async function apiRequest(text: string, language: string): Promise<GrammarCheckApiResponse>  {
     const response = await fetch(`${apiUrl}${language}`, {
         method: 'POST',
         headers: {
@@ -50,7 +58,7 @@ export async function apiRequest(text: string, language: string): Promise<Gramma
 
     try {
         const parsedResponse = await response.json();
-        return parsedResponse.results;
+        return parsedResponse;
     } catch (e) {
         return Promise.reject(e);
     }

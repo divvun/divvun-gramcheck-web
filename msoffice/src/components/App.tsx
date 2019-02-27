@@ -14,7 +14,7 @@ export interface AppProps {
 export interface AppState {
     selectedLanguage: string | undefined;
     appErrorText: string | null;
-    apiResultsByParagraph: GrammarCheckApiResponse['results'];
+    apiResultsByParagraph: GrammarCheckApiResponse[];
     loading: boolean;
     requestsCounter: number;
 }
@@ -48,11 +48,11 @@ export default class App extends React.Component<AppProps, AppState> {
     }
 
     getGrammarErrorText = (lineIndex: number, errorIndex: number): string => {
-        return this.state.apiResultsByParagraph[lineIndex].errs[errorIndex][0];
+        return this.state.apiResultsByParagraph[lineIndex].errs[errorIndex].error_text;
     }
 
     getSuggestion = (lineIndex: number, errorIndex: number, suggestionIndex: number): string => {
-        return this.state.apiResultsByParagraph[lineIndex].errs[errorIndex][5][suggestionIndex];
+        return this.state.apiResultsByParagraph[lineIndex].errs[errorIndex].suggestions[suggestionIndex];
     }
 
     removeGrammarErrror = (lineIndex: number, errorIndex: number) => {
@@ -119,8 +119,8 @@ export default class App extends React.Component<AppProps, AppState> {
                     const paragraph = paragraphs[paragraphIndex];
                     const paragraphResults = await apiRequest(paragraph, language);
 
-                    if (paragraphResults.length > 0) {
-                        apiResultsByParagraph[paragraphIndex] = paragraphResults[0];
+                    if (paragraphResults) {
+                        apiResultsByParagraph[paragraphIndex] = paragraphResults;
                     } else if (apiResultsByParagraph.length > paragraphIndex) {
                         apiResultsByParagraph = apiResultsByParagraph.splice(paragraphIndex, 1);
                     }
