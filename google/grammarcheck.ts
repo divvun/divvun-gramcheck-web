@@ -2,7 +2,7 @@
  * @OnlyCurrentDoc Limits the script to only accessing the current sheet.
  */
 
-const apiUrl = 'https://divvun-api.brendan.so/grammar/';
+const apiUrl = 'https://api-giellalt.uit.no/grammar/';
 
 function onOpen(e) {
     DocumentApp.getUi().createAddonMenu()
@@ -38,26 +38,20 @@ function runGrammarCheck(lang: string) {
     const text = DocumentApp.getActiveDocument().getBody().getText();
 
     const apiResult = grammarCheckApiRequest(lang, text);
-    
-    let resultsHtml = apiResult.results.reduce((html, r) => {
-        const resultsTemplate = HtmlService.createTemplateFromFile('results.html');
-        resultsTemplate['errors'] = r.errs.map((e) => {
-            return {
-                contextText: highlightError(r.text, e[0]),
-                errorText: e[0],
-                reason: e[4],
-                startIndex: e[2],
-                endIndex: e[3],
-                suggestions: e[5],
-            };
-        });
 
-        if (resultsTemplate['errors'].length === 0) {
-            return html;
-        }
+    const resultsTemplate = HtmlService.createTemplateFromFile('results.html');
+    resultsTemplate['errors'] = apiResult.errs.map((e) => {
+        return {
+            contextText: highlightError(apiResult.text, e.error_text),
+            errorText: e.error_text,
+            reason: e.description,
+            startIndex: e.start_index,
+            endIndex: e.end_index,
+            suggestions: e.suggestions,
+        };
+    });
 
-        return html + resultsTemplate.evaluate().getContent();
-    }, '');
+    let resultsHtml = resultsTemplate.evaluate().getContent();
 
     if (!resultsHtml) {
         return 'No grammar mistakes found';
@@ -97,12 +91,18 @@ function clipContextText(text: string, errorText: string): string {
     return text;
 }
 
-type APIGrammarError = [string, number, number, string, string, string[]];
+export interface APIGrammarError {
+    error_text: string;
+    start_index: number;
+    end_index: number;
+    error_code: string;
+    description: string;
+    suggestions: string[];
+}
+
 interface GrammarCheckApiResponse {
-    results: {
-        text: string;
-        errs: APIGrammarError[];
-    }[];
+    text: string;
+    errs: APIGrammarError[];
 }
 function grammarCheckApiRequest(lang: string, text: string): GrammarCheckApiResponse {
     const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
