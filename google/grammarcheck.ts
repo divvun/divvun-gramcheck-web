@@ -20,6 +20,15 @@ function showSidebar() {
     DocumentApp.getUi().showSidebar(ui);
 }
 
+function splitInParagraphs(text: string): string[] {
+    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    return normalizedText.split('\n');
+}
+
+function normalizeLineEndings(text: string): string {
+    return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
 interface GrammarCheckError {
     errorText: string;
     startIndex: number;
@@ -34,9 +43,22 @@ interface GrammarCheckResult {
         errors: GrammarCheckError[];
     }[];
 }
-function runGrammarCheck(lang: string) {
+
+function runGrammarCheckOnWholeText(lang: string) {
     const text = DocumentApp.getActiveDocument().getBody().getText();
 
+    const paragraphs = splitInParagraphs(text);
+
+    let html = '';
+
+    for (const paragraph of paragraphs) {
+        html += runGrammarCheck(lang, paragraph);
+    }
+
+    return html;
+}
+
+function runGrammarCheck(lang: string, text: string) {
     const apiResult = grammarCheckApiRequest(lang, text);
 
     const resultsTemplate = HtmlService.createTemplateFromFile('results.html');
@@ -110,7 +132,7 @@ function grammarCheckApiRequest(lang: string, text: string): GrammarCheckApiResp
         muteHttpExceptions: true,
         contentType: 'application/json',
         payload: JSON.stringify({
-            text,
+            text: normalizeLineEndings(text),
         }),
     };
     const response = UrlFetchApp.fetch(`${apiUrl}${lang}`, options);
