@@ -1,4 +1,4 @@
-import { normalizeLineEndings, loadSettings, IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, AVAILABLE_LANGUAGES } from '.';
+import { normalizeLineEndings, loadSettings, IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, AVAILABLE_LANGUAGES, filterIgnored } from '.';
 
 const apiUrl = 'https://api-giellalt.uit.no/';
 
@@ -47,11 +47,20 @@ export async function apiRequestGrammarCheck(text: string, language: string): Pr
         payload['ignore_tags'] = ignoredErrorTags.split(',');
     }
 
-    return apiRequest({
-        url: `${apiUrl}grammar/${language}`,
-        method: 'POST',
-        payload,
-    });
+    try {
+        const result = await apiRequest({
+            url: `${apiUrl}grammar/${language}`,
+            method: 'POST',
+            payload,
+        }) as GrammarCheckApiResponse;
+
+        result.errs = filterIgnored(result.errs);
+
+        return result;
+    } catch (e) {
+        console.error('Failed to get grammar check API response', e);
+        return Promise.reject();
+    }
 }
 
 export interface GrammarCheckerAvailablePreferences {
