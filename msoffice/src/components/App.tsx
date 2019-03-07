@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
 import { PrimaryButton, IDropdownOption, Spinner, Overlay, SpinnerSize, DefaultButton } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { splitInParagraphs, getRange, debounce, saveSettings, SELECTED_LANGUAGE_KEY } from '../utils';
+import { splitInParagraphs, getRange, debounce, saveSettings, SELECTED_LANGUAGE_KEY, loadSettings } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
 import Settings from './Settings';
@@ -25,8 +25,11 @@ export interface AppState {
 export default class App extends React.Component<AppProps, AppState> {
     constructor(props, context) {
         super(props, context);
+
+        const savedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
+
         this.state = {
-            selectedLanguage: undefined,
+            selectedLanguage: savedLanguage || undefined,
             appErrorText: null,
             apiResultsByParagraph: [],
             loading: false,
