@@ -40,20 +40,18 @@ export interface APIGrammarError {
     suggestions: string[];
 }
 
-export interface GrammarCheckApiResponse {
-    text: string;
-    errs: APIGrammarError[];
+interface ApiRequestOptions {
+    method: 'GET' | 'POST',
+    url: string,
+    payload: Object,
 }
-
-export async function apiRequest(text: string, language: string): Promise<GrammarCheckApiResponse>  {
-    const response = await fetch(`${apiUrl}${language}`, {
-        method: 'POST',
+async function apiRequest(options: ApiRequestOptions): Promise<any> {
+    const response = await fetch(options.url, {
+        method: options.method,
         headers: {
             'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-            text: normalizeLineEndings(text),
-        }),
+        body: options.payload ? JSON.stringify(options.payload) : null,
     });
 
     try {
@@ -62,6 +60,31 @@ export async function apiRequest(text: string, language: string): Promise<Gramma
     } catch (e) {
         return Promise.reject(e);
     }
+}
+
+export interface GrammarCheckApiResponse {
+    text: string;
+    errs: APIGrammarError[];
+}
+export async function apiRequestGrammarCheck(text: string, language: string): Promise<GrammarCheckApiResponse>  {
+    return apiRequest({
+        url: `${apiUrl}${language}`,
+        method: 'POST',
+        payload: {
+            text: normalizeLineEndings(text),
+        },
+    });
+}
+
+export interface GrammarErrorCategories {
+    [key: string]: string
+}
+export async function apiRequestErrorCategories(): Promise<GrammarErrorCategories> {
+    // TODO: use api request to fetch the category list
+    return {
+        'test1': 'Some name (test 1)',
+        'test2': 'Some name (test 2)',
+    };
 }
 
 export function splitInParagraphs(text: string): string[] {
