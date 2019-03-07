@@ -1,14 +1,14 @@
 import * as React from 'react';
 import { Checkbox, DefaultButton } from 'office-ui-fabric-react';
 import { loadSettings, saveSettings, IGNORED_ERROR_CATEGORIES_KEY } from '../utils';
-import { apiRequestErrorCategories, GrammarErrorCategories } from '../utils/api';
+import { apiRequestGrammarCheckerPreferences, GrammarCheckerAvailablePreferences } from '../utils/api';
 
 export interface SettingsProps {
     onClose: () => void
 }
 
 interface SettingsState {
-    allErrorCategories: GrammarErrorCategories,
+    allErrorCategories: GrammarCheckerAvailablePreferences['error_tags'],
     selectedIgnoredErrorCategories: string[],
 }
 
@@ -23,10 +23,10 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
 
     async componentDidMount() {
         this.loadSavedSettings();
-        const allErrorCategories = await apiRequestErrorCategories();
+        const availablePreferences = await apiRequestGrammarCheckerPreferences();
 
         this.setState({
-            allErrorCategories,
+            allErrorCategories: availablePreferences['error_tags'],
         });
     }
 
