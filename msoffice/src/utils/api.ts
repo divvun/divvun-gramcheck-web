@@ -1,6 +1,6 @@
-import { normalizeLineEndings, loadSettings, IGNORED_ERROR_TAGS_KEY } from '.';
+import { normalizeLineEndings, loadSettings, IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, AVAILABLE_LANGUAGES } from '.';
 
-const apiUrl = 'https://api-giellalt.uit.no/grammar/';
+const apiUrl = 'https://api-giellalt.uit.no/';
 
 export interface APIGrammarError {
     error_text: string;
@@ -14,7 +14,7 @@ export interface APIGrammarError {
 interface ApiRequestOptions {
     method: 'GET' | 'POST',
     url: string,
-    payload: Object,
+    payload?: Object,
 }
 async function apiRequest(options: ApiRequestOptions): Promise<any> {
     const response = await fetch(options.url, {
@@ -48,7 +48,7 @@ export async function apiRequestGrammarCheck(text: string, language: string): Pr
     }
 
     return apiRequest({
-        url: `${apiUrl}${language}`,
+        url: `${apiUrl}grammar/${language}`,
         method: 'POST',
         payload,
     });
@@ -58,11 +58,13 @@ export interface GrammarCheckerAvailablePreferences {
     error_tags: { [key: string]: string }
 }
 export async function apiRequestGrammarCheckerPreferences(): Promise<GrammarCheckerAvailablePreferences> {
-    // TODO: use api request to fetch the error tag list
-    return {
-        error_tags: {
-            'test1': 'Some name (test 1)',
-            'test2': 'Some name (test 2)',
-        },
-    };
+    let selectedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
+    if (!selectedLanguage) {
+        selectedLanguage = AVAILABLE_LANGUAGES[0].key;
+    }
+
+    return apiRequest({
+        url: `${apiUrl}preferences/grammar/${selectedLanguage}`,
+        method: 'GET',
+    });
 }
