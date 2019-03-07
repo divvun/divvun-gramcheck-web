@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
 import { PrimaryButton, IDropdownOption, Spinner, Overlay, SpinnerSize, DefaultButton } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { splitInParagraphs, getRange, debounce, saveSettings, SELECTED_LANGUAGE_KEY, loadSettings } from '../utils';
+import { splitInParagraphs, getRange, debounce, saveSettings, SELECTED_LANGUAGE_KEY, loadSettings, AVAILABLE_LANGUAGES } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
 import Settings from './Settings';
@@ -238,10 +238,7 @@ export default class App extends React.Component<AppProps, AppState> {
                     <Dropdown
                         placeHolder='Select language'
                         label='Language'
-                        options={[
-                            { key: 'se', text: 'North Sámi' },
-                            { key: 'sma', text: 'South Sámi' },
-                        ]}
+                        options={AVAILABLE_LANGUAGES}
                         selectedKey={this.state.selectedLanguage}
                         onChanged={this.changeLanguage}
                     />

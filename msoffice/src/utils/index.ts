@@ -3,6 +3,11 @@ import 'whatwg-fetch';
 export const IGNORED_ERROR_TAGS_KEY = 'ignoredErrorTags';
 export const SELECTED_LANGUAGE_KEY = 'selectedLanguage';
 
+export const AVAILABLE_LANGUAGES = [
+    { key: 'se', text: 'North Sámi' },
+    { key: 'sma', text: 'South Sámi' },
+];
+
 export function clipToErrorContext(text: string, errorText: string): string {
     const sentences = text.split('.');
 
