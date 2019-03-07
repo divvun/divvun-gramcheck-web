@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
 import { PrimaryButton, IDropdownOption, Spinner, Overlay, SpinnerSize, DefaultButton } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { splitInParagraphs, getRange, debounce, saveSettings, SELECTED_LANGUAGE_KEY, loadSettings, AVAILABLE_LANGUAGES } from '../utils';
+import { splitInParagraphs, getRange, debounce, saveSettings, SELECTED_LANGUAGE_KEY, loadSettings, AVAILABLE_LANGUAGES, ignore } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
 import Settings from './Settings';
@@ -188,6 +188,14 @@ export default class App extends React.Component<AppProps, AppState> {
         });
     }
 
+    ignore = (paragraphIndex: number, errorIndex: number) => {
+        const error = this.state.apiResultsByParagraph[paragraphIndex].errs[errorIndex];
+
+        ignore(error);
+
+        this.removeGrammarErrror(paragraphIndex, errorIndex);
+    }
+
     showSettings = () => {
         this.setState({
             settingsScreenShown: true,
@@ -261,6 +269,7 @@ export default class App extends React.Component<AppProps, AppState> {
                             apiResults={this.state.apiResultsByParagraph}
                             onCorrect={this.correct}
                             onHighlight={this.highlight}
+                            onIgnore={this.ignore}
                         />
                     </ErrorBoundary>
                 </div>

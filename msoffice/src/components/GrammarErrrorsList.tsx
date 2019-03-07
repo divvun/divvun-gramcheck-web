@@ -6,6 +6,7 @@ export interface GrammarErrorsListProps {
     apiResults: GrammarCheckApiResponse[];
     onCorrect(lineIndex: number, errorIndex: number, suggestionIndex: number): void;
     onHighlight(lineIndex: number, errorIndex: number, clear: boolean): void;
+    onIgnore(lineIndex: number, errorIndex: number): void;
 }
 
 export default class GrammarErrorsList extends React.Component<GrammarErrorsListProps, {}> {
@@ -31,6 +32,7 @@ export default class GrammarErrorsList extends React.Component<GrammarErrorsList
                         suggestions={e.suggestions}
                         onCorrect={this.props.onCorrect}
                         onHighlight={this.props.onHighlight}
+                        onIgnore={this.props.onIgnore}
                     />
                 );
             });
