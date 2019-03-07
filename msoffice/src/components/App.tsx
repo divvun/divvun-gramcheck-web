@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
-import { PrimaryButton, IDropdownOption, Spinner, Overlay, SpinnerSize } from 'office-ui-fabric-react';
+import { PrimaryButton, IDropdownOption, Spinner, Overlay, SpinnerSize, DefaultButton } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { GrammarCheckApiResponse, apiRequest, splitInParagraphs, getRange, debounce } from '../utils';
+import { GrammarCheckApiResponse, apiRequestGrammarCheck, splitInParagraphs, getRange, debounce } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
+import Settings from './Settings';
 
 export interface AppProps {
     title: string;
@@ -17,6 +18,7 @@ export interface AppState {
     apiResultsByParagraph: GrammarCheckApiResponse[];
     loading: boolean;
     requestsCounter: number;
+    settingsScreenShown: boolean;
 }
 
 export default class App extends React.Component<AppProps, AppState> {
@@ -28,6 +30,7 @@ export default class App extends React.Component<AppProps, AppState> {
             apiResultsByParagraph: [],
             loading: false,
             requestsCounter: 0,
+            settingsScreenShown: false,
         };
     }
 
@@ -117,7 +120,7 @@ export default class App extends React.Component<AppProps, AppState> {
 
                 for (; paragraphIndex < textEndIndex; paragraphIndex++) {
                     const paragraph = paragraphs[paragraphIndex];
-                    const paragraphResults = await apiRequest(paragraph, language);
+                    const paragraphResults = await apiRequestGrammarCheck(paragraph, language);
 
                     if (paragraphResults) {
                         apiResultsByParagraph[paragraphIndex] = paragraphResults;
@@ -179,6 +182,18 @@ export default class App extends React.Component<AppProps, AppState> {
         });
     }
 
+    showSettings = () => {
+        this.setState({
+            settingsScreenShown: true,
+        });
+    }
+
+    hideSettings = () => {
+        this.setState({
+            settingsScreenShown: false,
+        });
+    }
+
     render() {
         const {
             title,
@@ -193,6 +208,10 @@ export default class App extends React.Component<AppProps, AppState> {
                     message='Just select a language and run your grammar check'
                 />
             );
+        }
+
+        if (this.state.settingsScreenShown) {
+            return <Settings onClose={this.hideSettings}/>;
         }
 
         const loadingOverlay = this.state.loading ? (
@@ -230,6 +249,7 @@ export default class App extends React.Component<AppProps, AppState> {
                         >
                             Check grammar
                         </PrimaryButton>
+                        <DefaultButton onClick={this.showSettings}>Settings</DefaultButton>
                     </div>
                 </div>
                 <div className='body'>
