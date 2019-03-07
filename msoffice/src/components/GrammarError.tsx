@@ -11,6 +11,7 @@ export interface GrammarErrorProps {
     suggestions: string[];
     onCorrect(lineIndex: number, errorIndex: number, suggestionIndex: number): void;
     onHighlight(lineIndex: number, errorIndex: number, clear: boolean): void;
+    onIgnore(lineIndex: number, errorIndex: number): void;
 }
 
 interface GrammarErrorState {
@@ -59,6 +60,10 @@ export default class GrammarError extends React.Component<GrammarErrorProps, Gra
         this.props.onCorrect(this.props.lineIndex, this.props.errorIndex, i);
     }
 
+    ignore = () => {
+        this.props.onIgnore(this.props.lineIndex, this.props.errorIndex);
+    }
+
     render() {
         const suggestions = this.props.suggestions.map((suggestion, i) => {
             return (
@@ -84,6 +89,7 @@ export default class GrammarError extends React.Component<GrammarErrorProps, Gra
                 <div className='suggestions-list'>
                     {suggestions}
                 </div>
+                <div onClick={this.ignore}>IGNORE</div>
             </section>
         );
     }

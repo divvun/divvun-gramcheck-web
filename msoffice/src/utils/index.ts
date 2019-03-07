@@ -1,7 +1,9 @@
 import 'whatwg-fetch';
+import { APIGrammarError } from './api';
 
 export const IGNORED_ERROR_TAGS_KEY = 'ignoredErrorTags';
 export const SELECTED_LANGUAGE_KEY = 'selectedLanguage';
+export const IGNORED_ERRORS_KEY = 'ignoredIndividualErrors';
 
 export const AVAILABLE_LANGUAGES = [
     { key: 'se', text: 'North Sámi' },
@@ -143,4 +145,49 @@ export function loadSettings(key: string): string | null {
 
 export function saveSettings(key: string, value: string) {
     localStorage.setItem(key, value);
+}
+
+export function filterIgnored(grammarErrors: APIGrammarError[]): APIGrammarError[] {
+    return grammarErrors.filter((e) => !isIgnored(e));
+}
+
+export function ignore(error: APIGrammarError) {
+    const savedIgnoredErrors = loadIgnored();
+
+    savedIgnoredErrors.push(serializeError(error));
+
+    try {
+        saveSettings(IGNORED_ERRORS_KEY, savedIgnoredErrors.join(','));
+    } catch (e) {
+        console.error('Error saving ignored errors', e);
+    }
+}
+
+function loadIgnored(): string[] {
+    let savedIgnoredErrors = loadSettings(IGNORED_ERRORS_KEY);
+    if (!savedIgnoredErrors) {
+        return [];
+    }
+
+    let errors: string[] = [];
+    try {
+        errors = savedIgnoredErrors.split(',');
+    } catch (e) {
+        console.error('Error parsing saved ignored errors', e);
+    } finally {
+        return errors;
+    }
+}
+
+function isIgnored(error: APIGrammarError): boolean {
+    const savedIgnoredErrors = loadIgnored();
+
+    return savedIgnoredErrors.indexOf(serializeError(error)) > -1;
+}
+
+function serializeError(error: APIGrammarError): string {
+    return error.error_code + ':' +
+        error.start_index + ':' +
+        error.end_index + ':' +
+        error.error_text.replace(/[,:+]/g, '');
 }
