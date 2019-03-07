@@ -1,6 +1,12 @@
 import 'whatwg-fetch';
 
-const apiUrl = 'https://api-giellalt.uit.no/grammar/';
+export const IGNORED_ERROR_TAGS_KEY = 'ignoredErrorTags';
+export const SELECTED_LANGUAGE_KEY = 'selectedLanguage';
+
+export const AVAILABLE_LANGUAGES = [
+    { key: 'se', text: 'North Sámi' },
+    { key: 'sma', text: 'South Sámi' },
+];
 
 export function clipToErrorContext(text: string, errorText: string): string {
     const sentences = text.split('.');
@@ -29,47 +35,12 @@ export function clipToErrorContext(text: string, errorText: string): string {
     return text;
 }
 
-// export type APIGrammarError = [string, number, number, string, string, string[]];
-
-export interface APIGrammarError {
-    error_text: string;
-    start_index: number;
-    end_index: number;
-    error_code: string;
-    description: string;
-    suggestions: string[];
-}
-
-export interface GrammarCheckApiResponse {
-    text: string;
-    errs: APIGrammarError[];
-}
-
-export async function apiRequest(text: string, language: string): Promise<GrammarCheckApiResponse>  {
-    const response = await fetch(`${apiUrl}${language}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            text: normalizeLineEndings(text),
-        }),
-    });
-
-    try {
-        const parsedResponse = await response.json();
-        return parsedResponse;
-    } catch (e) {
-        return Promise.reject(e);
-    }
-}
-
 export function splitInParagraphs(text: string): string[] {
     const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     return normalizedText.split('\n');
 }
 
-function normalizeLineEndings(text: string): string {
+export function normalizeLineEndings(text: string): string {
     return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
 
@@ -164,4 +135,12 @@ export function debounce(func: Function, wait: number, immediate: boolean = fals
             func.apply(context, args);
         }
     };
+}
+
+export function loadSettings(key: string): string | null {
+    return localStorage.getItem(key);
+}
+
+export function saveSettings(key: string, value: string) {
+    localStorage.setItem(key, value);
 }

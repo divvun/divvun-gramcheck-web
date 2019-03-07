@@ -1,6 +1,6 @@
 import * as React from 'react';
 import GrammarError from './GrammarError';
-import { GrammarCheckApiResponse } from '../utils/index';
+import { GrammarCheckApiResponse } from '../utils/api';
 
 export interface GrammarErrorsListProps {
     apiResults: GrammarCheckApiResponse[];
