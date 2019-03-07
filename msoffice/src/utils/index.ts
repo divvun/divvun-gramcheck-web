@@ -2,6 +2,8 @@ import 'whatwg-fetch';
 
 const apiUrl = 'https://api-giellalt.uit.no/grammar/';
 
+export const IGNORED_ERROR_CATEGORIES_KEY = 'ignoredErrorCategories';
+
 export function clipToErrorContext(text: string, errorText: string): string {
     const sentences = text.split('.');
 
@@ -187,4 +189,12 @@ export function debounce(func: Function, wait: number, immediate: boolean = fals
             func.apply(context, args);
         }
     };
+}
+
+export function loadSettings(key: string): string | null {
+    return localStorage.getItem(key);
+}
+
+export function saveSettings(key: string, value: string) {
+    localStorage.setItem(key, value);
 }
