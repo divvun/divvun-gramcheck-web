@@ -2,10 +2,11 @@ import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
 import { PrimaryButton, IDropdownOption, Spinner, Overlay, SpinnerSize, DefaultButton } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { GrammarCheckApiResponse, apiRequestGrammarCheck, splitInParagraphs, getRange, debounce } from '../utils';
+import { splitInParagraphs, getRange, debounce } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
 import Settings from './Settings';
+import { GrammarCheckApiResponse, apiRequestGrammarCheck } from '../utils/api';
 
 export interface AppProps {
     title: string;

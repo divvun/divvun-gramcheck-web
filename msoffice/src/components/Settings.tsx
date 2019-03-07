@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Checkbox, DefaultButton } from 'office-ui-fabric-react';
-import { GrammarErrorCategories, loadSettings, saveSettings, IGNORED_ERROR_CATEGORIES_KEY, apiRequestErrorCategories } from '../utils';
+import { loadSettings, saveSettings, IGNORED_ERROR_CATEGORIES_KEY } from '../utils';
+import { apiRequestErrorCategories, GrammarErrorCategories } from '../utils/api';
 
 export interface SettingsProps {
     onClose: () => void
