@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
 import { PrimaryButton, IDropdownOption, Spinner, Overlay, SpinnerSize, DefaultButton } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { splitInParagraphs, getRange, debounce } from '../utils';
+import { splitInParagraphs, getRange, debounce, saveSettings, SELECTED_LANGUAGE_KEY } from '../utils';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
 import Settings from './Settings';
@@ -83,6 +83,8 @@ export default class App extends React.Component<AppProps, AppState> {
     changeLanguage = (option: IDropdownOption): void => {
         this.setState({
             selectedLanguage: option.key.toString(),
+        }, () => {
+            saveSettings(SELECTED_LANGUAGE_KEY, option.key.toString());
         });
     }
 

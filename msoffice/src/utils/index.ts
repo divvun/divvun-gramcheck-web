@@ -1,6 +1,7 @@
 import 'whatwg-fetch';
 
 export const IGNORED_ERROR_TAGS_KEY = 'ignoredErrorTags';
+export const SELECTED_LANGUAGE_KEY = 'selectedLanguage';
 
 export function clipToErrorContext(text: string, errorText: string): string {
     const sentences = text.split('.');
