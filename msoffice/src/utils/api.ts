@@ -1,4 +1,4 @@
-import { normalizeLineEndings, loadSettings, IGNORED_ERROR_CATEGORIES_KEY } from '.';
+import { normalizeLineEndings, loadSettings, IGNORED_ERROR_TAGS_KEY } from '.';
 
 const apiUrl = 'https://api-giellalt.uit.no/grammar/';
 
@@ -42,9 +42,9 @@ export async function apiRequestGrammarCheck(text: string, language: string): Pr
         text: normalizeLineEndings(text),
     };
 
-    const ignoredCategories = loadSettings(IGNORED_ERROR_CATEGORIES_KEY);
-    if (ignoredCategories) {
-        payload['ignore_tags'] = ignoredCategories.split(',');
+    const ignoredErrorTags = loadSettings(IGNORED_ERROR_TAGS_KEY);
+    if (ignoredErrorTags) {
+        payload['ignore_tags'] = ignoredErrorTags.split(',');
     }
 
     return apiRequest({
@@ -58,7 +58,7 @@ export interface GrammarCheckerAvailablePreferences {
     error_tags: { [key: string]: string }
 }
 export async function apiRequestGrammarCheckerPreferences(): Promise<GrammarCheckerAvailablePreferences> {
-    // TODO: use api request to fetch the category list
+    // TODO: use api request to fetch the error tag list
     return {
         error_tags: {
             'test1': 'Some name (test 1)',
