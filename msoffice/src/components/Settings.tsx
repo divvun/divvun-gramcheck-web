@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { Checkbox, DefaultButton } from 'office-ui-fabric-react';
+import { Checkbox } from 'office-ui-fabric-react';
 import { loadSettings, saveSettings, IGNORED_ERROR_TAGS_KEY } from '../utils';
 import { apiRequestGrammarCheckerPreferences, GrammarCheckerAvailablePreferences } from '../utils/api';
 
 export interface SettingsProps {
-    onClose: () => void
 }
 
+type ErrorTags = GrammarCheckerAvailablePreferences['error_tags'];
 interface SettingsState {
-    allAvailableErrorTags: GrammarCheckerAvailablePreferences['error_tags'],
+    allAvailableErrorTags: ErrorTags,
     selectedIgnoredErrorTags: string[],
 }
 
@@ -26,8 +26,28 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
         const availablePreferences = await apiRequestGrammarCheckerPreferences();
 
         this.setState({
-            allAvailableErrorTags: availablePreferences['error_tags'],
+            allAvailableErrorTags: this.groupSettingsByLocalizedName(availablePreferences['error_tags']),
         });
+    }
+
+    groupSettingsByLocalizedName(settings: ErrorTags): ErrorTags {
+        let nameGrouped: {[key: string]: string[]} = {};
+        Object.keys(settings).forEach((errorTag) => {
+            const name = settings[errorTag];
+            if (nameGrouped[name]) {
+                nameGrouped[name].push(errorTag);
+            } else {
+                nameGrouped[name] = [errorTag];
+            }
+        });
+
+        let tagGrouped: ErrorTags = {};
+        Object.keys(nameGrouped).forEach((name) => {
+            const tags = nameGrouped[name].join(',');
+            tagGrouped[tags] = name;
+        });
+
+        return tagGrouped;
     }
 
     loadSavedSettings = () => {
@@ -48,11 +68,12 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
     }
 
     onChangeIgnoredErrorTags = (key: string, checked: boolean) => {
+        const ungrouppedKeys = key.split(',');
         let currentSettings = this.state.selectedIgnoredErrorTags;
 
-        currentSettings = currentSettings.filter((k) => k !== key);
+        currentSettings = currentSettings.filter((k) => ungrouppedKeys.indexOf(k) < 0);
         if (checked) {
-            currentSettings.push(key);
+            currentSettings = currentSettings.concat(ungrouppedKeys);
         }
 
         this.setState({
@@ -62,8 +83,19 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
         });
     }
 
-    close = () => {
-        this.props.onClose();
+    isSelected(grouppedTag: string): boolean {
+        const grouppedTagsArray = grouppedTag.split(',');
+
+        let result = false;
+
+        for (const tagName of grouppedTagsArray) {
+            if (this.state.selectedIgnoredErrorTags.indexOf(tagName) > -1) {
+                result = true;
+                break;
+            }
+        }
+
+        return result;
     }
 
     render() {
@@ -77,17 +109,18 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
                     key={tagName}
                     label={tagLocalizedName}
                     ariaLabel={tagLocalizedName}
-                    checked={this.state.selectedIgnoredErrorTags.indexOf(tagName) > -1}
+                    checked={this.isSelected(tagName)}
+                    className='ignored-tag-checkbox'
                     onChange={(_, checked) => { this.onChangeIgnoredErrorTags(tagName, checked); }}
                 />
             );
         }
 
         return (
-            <div className='settings-pane'>
-                <h2>Settings</h2>
+            <div className='settings-pane body'>
+                <h2>Ignored error types</h2>
+                <p>Select the types of errors you want to not see when doing grammar checks</p>
                 {ignoredErrorTagsCheckboxes}
-                <DefaultButton onClick={this.close}>Close</DefaultButton>
             </div>
         );
     }

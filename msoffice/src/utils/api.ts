@@ -1,4 +1,4 @@
-import { normalizeLineEndings, loadSettings, IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, AVAILABLE_LANGUAGES, filterIgnored } from '.';
+import { normalizeLineEndings, loadSettings, IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, AVAILABLE_LANGUAGES, filterIgnoredIndividualErrors as filterIgnoredIndividualErrors, filterIgnoredErrorTags } from '.';
 
 const apiUrl = 'https://api-giellalt.uit.no/';
 
@@ -7,6 +7,7 @@ export interface APIGrammarError {
     start_index: number;
     end_index: number;
     error_code: string;
+    title: string;
     description: string;
     suggestions: string[];
 }
@@ -54,7 +55,8 @@ export async function apiRequestGrammarCheck(text: string, language: string): Pr
             payload,
         }) as GrammarCheckApiResponse;
 
-        result.errs = filterIgnored(result.errs);
+        result.errs = filterIgnoredIndividualErrors(result.errs);
+        result.errs = filterIgnoredErrorTags(result.errs);
 
         return result;
     } catch (e) {
