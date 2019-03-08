@@ -1,15 +1,24 @@
 import * as React from 'react';
 import { loadSettings, SELECTED_LANGUAGE_KEY, ignoreIndividualError, getRange, splitInParagraphs, saveSettings, AVAILABLE_LANGUAGES, debounce } from '../utils';
-import { GrammarCheckApiResponse, apiRequestGrammarCheck } from '../utils/api';
+import { GrammarCheckApiResponse, apiRequestGrammarCheck, APIGrammarError } from '../utils/api';
 import { Overlay, Spinner, SpinnerSize, PrimaryButton, Dropdown, IDropdownOption } from 'office-ui-fabric-react';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
+import Snackbar from './Snackbar';
+
+const SNACKBAR_DISAPPEAR_AFTER_MS = 7000;
 
 export interface CheckerProps {
 }
 
 interface CheckerState {
     apiResultsByParagraph: GrammarCheckApiResponse[];
+    lastCorrectedError: {
+        error: APIGrammarError;
+        selectedSuggestion: string;
+        paragraphIndex: number;
+        errorIndex: number;
+    } | null;
     loading: boolean;
     requestsCounter: number;
     selectedLanguage: string | undefined;
@@ -23,6 +32,7 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
 
         this.state = {
             apiResultsByParagraph: [],
+            lastCorrectedError: null,
             loading: false,
             requestsCounter: 0,
             selectedLanguage: savedLanguage || undefined,
@@ -58,6 +68,14 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
         newApiResults[lineIndex].errs.splice(errorIndex, 1);
         this.setState({
             apiResultsByParagraph: newApiResults,
+        });
+    }
+
+    insertGrammarErrror = (lineIndex: number, errorIndex: number, error: APIGrammarError) => {
+        const newResults = this.state.apiResultsByParagraph.concat();
+        newResults[lineIndex].errs.splice(errorIndex, 0, error);
+        this.setState({
+            apiResultsByParagraph: newResults,
         });
     }
 
@@ -149,6 +167,19 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                 errorRange.insertText(suggestion, 'Replace');
                 errorRange.select('End');
 
+                const lastCorrectedError = {
+                    error: this.state.apiResultsByParagraph[paragraphIndex].errs[errorIndex],
+                    selectedSuggestion: suggestion,
+                    paragraphIndex,
+                    errorIndex,
+                };
+
+                this.setState({
+                    lastCorrectedError,
+                }, () => {
+                    setTimeout(this.clearLastCorrectedError, SNACKBAR_DISAPPEAR_AFTER_MS);
+                });
+
                 this.removeGrammarErrror(paragraphIndex, errorIndex);
 
                 await context.sync();
@@ -168,6 +199,36 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
         this.removeGrammarErrror(paragraphIndex, errorIndex);
     }
 
+    clearLastCorrectedError = () => {
+        this.setState({
+            lastCorrectedError: null,
+        });
+    }
+
+    undo = () => {
+        Word.run(async (context) => {
+            try {
+                const correctedError = this.state.lastCorrectedError;
+
+                const errorText = correctedError.selectedSuggestion;
+                const paragraphText = this.getLineText(correctedError.paragraphIndex);
+                const errorRange = await getRange(context, paragraphText, errorText);
+
+                errorRange.insertText(correctedError.error.error_text, 'Replace');
+                errorRange.select('End');
+
+                this.clearLastCorrectedError();
+
+                this.insertGrammarErrror(correctedError.paragraphIndex, correctedError.errorIndex, correctedError.error);
+
+                await context.sync();
+                this.runGrammarCheck(correctedError.paragraphIndex);
+            } catch (e) {
+                console.error(e.message, e.debugInfo);
+            }
+        });
+    }
+
     render() {
         const loadingOverlay = this.state.loading ? (
             <Overlay className='loading-overlay'>
@@ -180,6 +241,11 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                 />
             </Overlay>
         ) : null;
+
+        let snackbar = null;
+        if (this.state.lastCorrectedError) {
+            snackbar = <Snackbar label='Correction implemented' onAction={this.undo} buttonLabel='Undo'/>;
+        }
 
         return <>
             <div id='toolbar'>
@@ -207,6 +273,7 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                         onIgnore={this.ignore}
                     />
                 </ErrorBoundary>
+                {snackbar}
             </div>
             {loadingOverlay}
         </>;
