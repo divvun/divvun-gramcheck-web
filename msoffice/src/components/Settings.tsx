@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { Checkbox, DefaultButton } from 'office-ui-fabric-react';
+import { Checkbox } from 'office-ui-fabric-react';
 import { loadSettings, saveSettings, IGNORED_ERROR_TAGS_KEY } from '../utils';
 import { apiRequestGrammarCheckerPreferences, GrammarCheckerAvailablePreferences } from '../utils/api';
 
 export interface SettingsProps {
-    onClose: () => void
 }
 
 interface SettingsState {
@@ -62,10 +61,6 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
         });
     }
 
-    close = () => {
-        this.props.onClose();
-    }
-
     render() {
         const ignoredErrorTagsCheckboxes: JSX.Element[] = [];
         for (const tagName of Object.keys(this.state.allAvailableErrorTags)) {
@@ -84,10 +79,8 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
         }
 
         return (
-            <div className='settings-pane'>
-                <h2>Settings</h2>
+            <div className='settings-pane body'>
                 {ignoredErrorTagsCheckboxes}
-                <DefaultButton onClick={this.close}>Close</DefaultButton>
             </div>
         );
     }

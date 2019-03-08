@@ -11,14 +11,9 @@ body {
     padding: 0;
 }
 
-.example-leave {
-    transition: height 400ms ease-in;
-}
-
 #container {
     height: 100%;
     width: 100%;
-    padding: 0px 10px 10px 10px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -29,20 +24,50 @@ body {
         height: 18px;
     }
 
+    #tabs {
+        background: #F4F4F4;
+        height: 40px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        border-top: 1px solid #95989A;
+        padding-top: 2px;
+
+        .tab {
+            font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            line-height: 19px;
+            font-size: 14px;
+            text-align: center;
+            color: #333333;
+            text-align: center;
+            width: 30%;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top: #F4F4F4 4px solid;
+
+            &.selected {
+                font-weight: bold;
+                border-top: #0078D4 4px solid;
+            }
+        }
+    }
+
     #toolbar {
-        height: 150px;
+        font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
         width: 100%;
         box-sizing: border-box;
-        padding-right: 20px;
-        position: fixed;
-        background-color: white;
-        z-index: 100;
+        padding: 21px 20px;
 
-        .buttons {
-            margin-top: 10px;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
+        display: flex;
+        flex-direction: row;
+
+        .ms-Dropdown-container {
+            flex-grow: 1;
+            margin-right: 10px;
         }
     }
 
@@ -59,7 +84,7 @@ body {
     }
 
     .body {
-        margin-top: 150px;
+        flex-grow: 1;
     }
 
     .grammar-errors-list {
