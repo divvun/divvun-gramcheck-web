@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as worker from '../utils/text.worker';
 import Highlighter from 'react-highlighter';
+import { DefaultButton, PrimaryButton, Icon } from 'office-ui-fabric-react';
 
 export interface GrammarErrorProps {
     contextText: string;
@@ -67,13 +68,13 @@ export default class GrammarError extends React.Component<GrammarErrorProps, Gra
     render() {
         const suggestions = this.props.suggestions.map((suggestion, i) => {
             return (
-                <div
+                <PrimaryButton
                     key={`suggestion-${i}`}
                     className='suggestion'
                     onClick={this.correct.bind(this, i)}
                 >
-                    { suggestion }
-                </div>
+                    {suggestion}
+                </PrimaryButton>
             );
         });
 
@@ -83,13 +84,20 @@ export default class GrammarError extends React.Component<GrammarErrorProps, Gra
                 onMouseEnter={this.highlight.bind(this)}
                 onMouseLeave={this.clearHighlight.bind(this)}
             >
-                <div className='reason'>{ this.props.reason }</div>
-                <Highlighter className='context' search={this.props.errorText}>{this.state.contextText}</Highlighter>
-                <div className='suggestions-heading'>{ this.props.suggestions.length > 0 ? 'Suggested corrections' : '' }</div>
-                <div className='suggestions-list'>
-                    {suggestions}
+                <div className='reason'>
+                    <span>{ this.props.reason }</span>
+                    <Icon iconName='ChevronDown' className='chevron-down'/>
                 </div>
-                <div onClick={this.ignore}>IGNORE</div>
+                <Highlighter className='context' search={this.props.errorText}>…{this.state.contextText}…</Highlighter>
+                <div className='suggestions'>
+                    <div className='suggestions-heading'>
+                        { this.props.suggestions.length > 0 ? <span>Suggested corrections</span> : null }
+                        <DefaultButton onClick={this.ignore} className='ignoreButton'>Ignore</DefaultButton>
+                    </div>
+                    <div className='suggestions-list'>
+                        {suggestions}
+                    </div>
+                </div>
             </section>
         );
     }
