@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { loadSettings, SELECTED_LANGUAGE_KEY, ignore, getRange, splitInParagraphs, saveSettings, AVAILABLE_LANGUAGES, debounce } from '../utils';
+import { loadSettings, SELECTED_LANGUAGE_KEY, ignoreIndividualError, getRange, splitInParagraphs, saveSettings, AVAILABLE_LANGUAGES, debounce } from '../utils';
 import { GrammarCheckApiResponse, apiRequestGrammarCheck } from '../utils/api';
 import { Overlay, Spinner, SpinnerSize, PrimaryButton, Dropdown, IDropdownOption } from 'office-ui-fabric-react';
 import GrammarErrorsList from './GrammarErrrorsList';
@@ -163,7 +163,7 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
     ignore = (paragraphIndex: number, errorIndex: number) => {
         const error = this.state.apiResultsByParagraph[paragraphIndex].errs[errorIndex];
 
-        ignore(error);
+        ignoreIndividualError(error);
 
         this.removeGrammarErrror(paragraphIndex, errorIndex);
     }

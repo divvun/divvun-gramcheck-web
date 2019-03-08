@@ -147,12 +147,38 @@ export function saveSettings(key: string, value: string) {
     localStorage.setItem(key, value);
 }
 
-export function filterIgnored(grammarErrors: APIGrammarError[]): APIGrammarError[] {
-    return grammarErrors.filter((e) => !isIgnored(e));
+export function filterIgnoredErrorTags(grammarErrors: APIGrammarError[]): APIGrammarError[] {
+    return grammarErrors.filter((e) => !isErrorTagIgnored(e));
 }
 
-export function ignore(error: APIGrammarError) {
-    const savedIgnoredErrors = loadIgnored();
+export function filterIgnoredIndividualErrors(grammarErrors: APIGrammarError[]): APIGrammarError[] {
+    return grammarErrors.filter((e) => !isIndividualErrorIgnored(e));
+}
+
+function isErrorTagIgnored(error: APIGrammarError): boolean {
+    const savedIgnoredErrorTags = loadIgnoredErrorTags();
+
+    return savedIgnoredErrorTags.indexOf(error.error_code) > -1;
+}
+
+function loadIgnoredErrorTags(): string[] {
+    let savedIgnoredErrorTags = loadSettings(IGNORED_ERROR_TAGS_KEY);
+    if (!savedIgnoredErrorTags) {
+        return [];
+    }
+
+    let errors: string[] = [];
+    try {
+        errors = savedIgnoredErrorTags.split(',');
+    } catch (e) {
+        console.error('Error parsing saved ignored error tags', e);
+    } finally {
+        return errors;
+    }
+}
+
+export function ignoreIndividualError(error: APIGrammarError) {
+    const savedIgnoredErrors = loadIgnoredIndividualErrors();
 
     savedIgnoredErrors.push(serializeError(error));
 
@@ -163,7 +189,7 @@ export function ignore(error: APIGrammarError) {
     }
 }
 
-function loadIgnored(): string[] {
+function loadIgnoredIndividualErrors(): string[] {
     let savedIgnoredErrors = loadSettings(IGNORED_ERRORS_KEY);
     if (!savedIgnoredErrors) {
         return [];
@@ -179,8 +205,8 @@ function loadIgnored(): string[] {
     }
 }
 
-function isIgnored(error: APIGrammarError): boolean {
-    const savedIgnoredErrors = loadIgnored();
+function isIndividualErrorIgnored(error: APIGrammarError): boolean {
+    const savedIgnoredErrors = loadIgnoredIndividualErrors();
 
     return savedIgnoredErrors.indexOf(serializeError(error)) > -1;
 }
