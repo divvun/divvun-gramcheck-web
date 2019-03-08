@@ -1,10 +1,8 @@
 import * as React from 'react';
-import { Dropdown } from 'office-ui-fabric-react/lib/Dropdown';
-import { PrimaryButton, IDropdownOption, Spinner, Overlay, SpinnerSize } from 'office-ui-fabric-react';
 import Progress from './Progress';
-import { GrammarCheckApiResponse, apiRequest, splitInParagraphs, getRange, debounce } from '../utils';
-import GrammarErrorsList from './GrammarErrrorsList';
-import ErrorBoundary from './ErrorBoundary';
+import Settings from './Settings';
+import Tabs, { TabItem } from './Tabs';
+import Checker from './Checker';
 
 export interface AppProps {
     title: string;
@@ -12,170 +10,32 @@ export interface AppProps {
 }
 
 export interface AppState {
-    selectedLanguage: string | undefined;
-    appErrorText: string | null;
-    apiResultsByParagraph: GrammarCheckApiResponse['results'];
-    loading: boolean;
-    requestsCounter: number;
+    selectedTab: string;
 }
+
+const availableTabs: TabItem[] = [
+    {
+        name: 'list',
+        label: 'List'
+    },
+    {
+        name: 'settings',
+        label: 'Settings',
+    },
+];
 
 export default class App extends React.Component<AppProps, AppState> {
     constructor(props, context) {
         super(props, context);
+
         this.state = {
-            selectedLanguage: undefined,
-            appErrorText: null,
-            apiResultsByParagraph: [],
-            loading: false,
-            requestsCounter: 0,
+            selectedTab: availableTabs[0].name,
         };
     }
 
-    startLoading = () => {
+    switchTab = (tabName: string) => {
         this.setState({
-            loading: true,
-        });
-    }
-
-    stopLoading = () => {
-        this.setState({
-            loading: false,
-        });
-    }
-
-    getLineText = (lineIndex: number): string => {
-        return this.state.apiResultsByParagraph[lineIndex].text;
-    }
-
-    getGrammarErrorText = (lineIndex: number, errorIndex: number): string => {
-        return this.state.apiResultsByParagraph[lineIndex].errs[errorIndex][0];
-    }
-
-    getSuggestion = (lineIndex: number, errorIndex: number, suggestionIndex: number): string => {
-        return this.state.apiResultsByParagraph[lineIndex].errs[errorIndex][5][suggestionIndex];
-    }
-
-    removeGrammarErrror = (lineIndex: number, errorIndex: number) => {
-        const newApiResults = this.state.apiResultsByParagraph.concat();
-        newApiResults[lineIndex].errs.splice(errorIndex, 1);
-        this.setState({
-            apiResultsByParagraph: newApiResults,
-            appErrorText: null,
-        });
-    }
-
-    showAppError = (text: string) => {
-        this.setState({
-            appErrorText: text,
-        });
-    }
-
-    clearAppError = () => {
-        this.setState({
-            appErrorText: null,
-        });
-    }
-
-    changeLanguage = (option: IDropdownOption): void => {
-        this.setState({
-            selectedLanguage: option.key.toString(),
-        });
-    }
-
-    runGrammarCheckOnWholeText = () => {
-        this.setState({
-            requestsCounter: this.state.requestsCounter + 1,
-        });
-        this.runGrammarCheck(-1);
-    }
-
-    runGrammarCheck = async (selectedParagraphIndex: number = -1) => {
-        if (!this.state.selectedLanguage) {
-            this.showAppError('No language selected');
-            return;
-        }
-
-        this.startLoading();
-        this.clearAppError();
-
-        Word.run(async (context) => {
-            const body = context.document.body;
-            try {
-                context.load(body);
-                await context.sync();
-                const paragraphs = splitInParagraphs(body.text);
-                const language = this.state.selectedLanguage;
-
-                let paragraphIndex = 0;
-                let textEndIndex = paragraphs.length;
-                if (selectedParagraphIndex > -1) {
-                    paragraphIndex = selectedParagraphIndex;
-                    textEndIndex = paragraphIndex + 1;
-                }
-
-                let apiResultsByParagraph = this.state.apiResultsByParagraph.concat([]);
-
-                for (; paragraphIndex < textEndIndex; paragraphIndex++) {
-                    const paragraph = paragraphs[paragraphIndex];
-                    const paragraphResults = await apiRequest(paragraph, language);
-
-                    if (paragraphResults.length > 0) {
-                        apiResultsByParagraph[paragraphIndex] = paragraphResults[0];
-                    } else if (apiResultsByParagraph.length > paragraphIndex) {
-                        apiResultsByParagraph = apiResultsByParagraph.splice(paragraphIndex, 1);
-                    }
-                }
-
-                this.setState({
-                    apiResultsByParagraph: apiResultsByParagraph,
-                });
-            } catch (e) {
-                console.error(e.message, e.debugInfo);
-                this.showAppError('Could not get grammar check results');
-            } finally {
-                this.stopLoading();
-            }
-        });
-    }
-
-    highlight = debounce((lineIndex: number, errorIndex: number, clear: boolean = false) => {
-        Word.run(async (context) => {
-            try {
-                const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
-                const paragraphText = this.getLineText(lineIndex);
-                const errorRange = await getRange(context, paragraphText, errorText);
-
-                errorRange.select(clear ? 'Start' : 'Select');
-                this.clearAppError();
-                await context.sync();
-            } catch (e) {
-                console.error(e.message, e.debugInfo);
-                this.showAppError('Cannot highlight error. Maybe the text changed?');
-            }
-        });
-    }, 150);
-
-    correct = (paragraphIndex: number, errorIndex: number, suggestionIndex: number) => {
-        Word.run(async (context) => {
-            try {
-                const errorText = this.getGrammarErrorText(paragraphIndex, errorIndex);
-                const paragraphText = this.getLineText(paragraphIndex);
-                const errorRange = await getRange(context, paragraphText, errorText);
-
-                const suggestion = this.getSuggestion(paragraphIndex, errorIndex, suggestionIndex);
-
-                errorRange.insertText(suggestion, 'Replace');
-                errorRange.select('End');
-
-                this.removeGrammarErrror(paragraphIndex, errorIndex);
-
-                await context.sync();
-                this.runGrammarCheck(paragraphIndex);
-            } catch (e) {
-                console.error(e.message, e.debugInfo);
-                this.showAppError('Cannot correct text. Rerun the check.');
-                this.runGrammarCheck(paragraphIndex);
-            }
+            selectedTab: tabName,
         });
     }
 
@@ -195,53 +55,20 @@ export default class App extends React.Component<AppProps, AppState> {
             );
         }
 
-        const loadingOverlay = this.state.loading ? (
-            <Overlay className='loading-overlay'>
-                <Spinner
-                    size={SpinnerSize.large}
-                    label='Running grammar checker...'
-                    ariaLive='assertive'
-                    className='loading-indicator'
-                    ariaLabel='Running grammar checker...'
-                />
-            </Overlay>
-        ) : null;
+        let tabContents = null;
+
+        if (this.state.selectedTab === 'settings') {
+            tabContents = <Settings/>;
+        }
+
+        if (this.state.selectedTab === 'list') {
+            tabContents = <Checker/>;
+        }
 
         return (
             <>
-                <div id='toolbar'>
-                    <Dropdown
-                        placeHolder='Select language'
-                        label='Language'
-                        options={[
-                            { key: 'se', text: 'North Sámi' },
-                            { key: 'sma', text: 'South Sámi' },
-                        ]}
-                        selectedKey={this.state.selectedLanguage}
-                        onChanged={this.changeLanguage}
-                    />
-                    <div className='error'>
-                        {this.state.appErrorText}
-                    </div>
-                    <div className='buttons'>
-                        <PrimaryButton
-                            onClick={this.runGrammarCheckOnWholeText}
-                            ariaDescription='Check grammar'
-                        >
-                            Check grammar
-                        </PrimaryButton>
-                    </div>
-                </div>
-                <div className='body'>
-                    <ErrorBoundary key={this.state.requestsCounter}>
-                        <GrammarErrorsList
-                            apiResults={this.state.apiResultsByParagraph}
-                            onCorrect={this.correct}
-                            onHighlight={this.highlight}
-                        />
-                    </ErrorBoundary>
-                </div>
-                {loadingOverlay}
+                {tabContents}
+                <Tabs tabs={availableTabs} selectedTabName={this.state.selectedTab} onChangeTab={this.switchTab}/>
             </>
         );
     }

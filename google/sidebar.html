@@ -28,6 +28,8 @@
       i,
       .grammar-error-text {
         color: #FD2572;
+        font-weight: bold;
+        text-decoration: underline;
       }
       
       .suggestions-list {
@@ -100,7 +102,7 @@
               element.disabled = false;
             })
           .withUserObject(this)
-          .runGrammarCheck(lang);
+          .runGrammarCheckOnWholeText(lang);
       }
 
       function runCorrection() {

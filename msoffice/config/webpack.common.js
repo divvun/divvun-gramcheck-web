@@ -113,9 +113,17 @@ module.exports = {
         noEmitOnErrors: true,
         namedModules: true,
         splitChunks: {
-            name: 'vendor',
-            minChunks: Infinity,
-            chunks: 'all',
+            cacheGroups: {
+                vendor: {
+                    test: /[\\/]node_modules[\\/]/,
+                    priority: -10
+                },
+                default: {
+                    minChunks: 2,
+                    priority: -20,
+                    reuseExistingChunk: true
+                }
+            }
         }
     },
     plugins: [
@@ -139,6 +147,9 @@ module.exports = {
                 ignore: ['*.scss'],
                 to: 'assets',
             }
-        ])
+        ]),
+        new webpack.ProvidePlugin({
+            Promise: 'bluebird',
+        }),
     ]
 };

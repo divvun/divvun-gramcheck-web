@@ -2,7 +2,7 @@
  * @OnlyCurrentDoc Limits the script to only accessing the current sheet.
  */
 
-const apiUrl = 'http://divvun-api.brendan.so/grammar/';
+const apiUrl = 'https://api-giellalt.uit.no/grammar/';
 
 function onOpen(e) {
     DocumentApp.getUi().createAddonMenu()
@@ -20,6 +20,15 @@ function showSidebar() {
     DocumentApp.getUi().showSidebar(ui);
 }
 
+function splitInParagraphs(text: string): string[] {
+    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    return normalizedText.split('\n');
+}
+
+function normalizeLineEndings(text: string): string {
+    return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
 interface GrammarCheckError {
     errorText: string;
     startIndex: number;
@@ -34,30 +43,37 @@ interface GrammarCheckResult {
         errors: GrammarCheckError[];
     }[];
 }
-function runGrammarCheck(lang: string) {
+
+function runGrammarCheckOnWholeText(lang: string) {
     const text = DocumentApp.getActiveDocument().getBody().getText();
 
+    const paragraphs = splitInParagraphs(text);
+
+    let html = '';
+
+    for (const paragraph of paragraphs) {
+        html += runGrammarCheck(lang, paragraph);
+    }
+
+    return html;
+}
+
+function runGrammarCheck(lang: string, text: string) {
     const apiResult = grammarCheckApiRequest(lang, text);
-    
-    let resultsHtml = apiResult.results.reduce((html, r) => {
-        const resultsTemplate = HtmlService.createTemplateFromFile('results.html');
-        resultsTemplate['errors'] = r.errs.map((e) => {
-            return {
-                contextText: highlightError(r.text, e[0]),
-                errorText: e[0],
-                reason: e[4],
-                startIndex: e[2],
-                endIndex: e[3],
-                suggestions: e[5],
-            };
-        });
 
-        if (resultsTemplate['errors'].length === 0) {
-            return html;
-        }
+    const resultsTemplate = HtmlService.createTemplateFromFile('results.html');
+    resultsTemplate['errors'] = apiResult.errs.map((e) => {
+        return {
+            contextText: highlightError(apiResult.text, e.error_text),
+            errorText: e.error_text,
+            reason: e.description,
+            startIndex: e.start_index,
+            endIndex: e.end_index,
+            suggestions: e.suggestions,
+        };
+    });
 
-        return html + resultsTemplate.evaluate().getContent();
-    }, '');
+    let resultsHtml = resultsTemplate.evaluate().getContent();
 
     if (!resultsHtml) {
         return 'No grammar mistakes found';
@@ -67,26 +83,48 @@ function runGrammarCheck(lang: string) {
 }
 
 function highlightError(text: string, errorText: string): string {
-    return text.replace(errorText, `<i>${errorText}</i>`);
+    return clipContextText(text, errorText).replace(errorText, `<i>${errorText}</i>`);
 }
 
 function clipContextText(text: string, errorText: string): string {
-    let contextSentence = text;
-    text.split('.').forEach((sentence) => {
-        if (sentence.indexOf(errorText) > -1) {
-            contextSentence = sentence;
-        }
-    });
+    const sentences = text.split('.');
 
-    return contextSentence;
+    for (let sentence of sentences) {
+        if (errorText.indexOf('.') === 0) {
+            sentence = '.' + sentence;
+        }
+        if (errorText.lastIndexOf('.') > -1) {
+            sentence += '.';
+        }
+        const errorTextPos = sentence.indexOf(errorText);
+        if (errorTextPos > -1) {
+            let cutStartIndex = sentence.substr(0, errorTextPos - 1).lastIndexOf(' ');
+            if (cutStartIndex < 0) {
+                cutStartIndex = 0;
+            }
+            let cutEndIndex = sentence.indexOf(' ', errorTextPos + errorText.length + 1);
+            if (cutEndIndex < 0) {
+                cutEndIndex = sentence.length;
+            }
+            return sentence.substr(cutStartIndex, cutEndIndex - cutStartIndex);
+        }
+    }
+
+    return text;
 }
 
-type APIGrammarError = [string, number, number, string, string, string[]];
+export interface APIGrammarError {
+    error_text: string;
+    start_index: number;
+    end_index: number;
+    error_code: string;
+    description: string;
+    suggestions: string[];
+}
+
 interface GrammarCheckApiResponse {
-    results: {
-        text: string;
-        errs: APIGrammarError[];
-    }[];
+    text: string;
+    errs: APIGrammarError[];
 }
 function grammarCheckApiRequest(lang: string, text: string): GrammarCheckApiResponse {
     const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
@@ -94,7 +132,7 @@ function grammarCheckApiRequest(lang: string, text: string): GrammarCheckApiResp
         muteHttpExceptions: true,
         contentType: 'application/json',
         payload: JSON.stringify({
-            text,
+            text: normalizeLineEndings(text),
         }),
     };
     const response = UrlFetchApp.fetch(`${apiUrl}${lang}`, options);

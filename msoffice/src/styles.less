@@ -11,17 +11,13 @@ body {
     padding: 0;
 }
 
-.example-leave {
-    transition: height 400ms ease-in;
-}
-
 #container {
     height: 100%;
     width: 100%;
-    padding: 0px 10px 10px 10px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 
     .error {
         margin-top: 10px;
@@ -29,24 +25,56 @@ body {
         height: 18px;
     }
 
+    #tabs {
+        background: #F4F4F4;
+        height: 40px;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        border-top: 1px solid #95989A;
+        padding-top: 2px;
+        flex-shrink: 0;
+
+        .tab {
+            font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            line-height: 19px;
+            font-size: 14px;
+            text-align: center;
+            color: #333333;
+            text-align: center;
+            width: 30%;
+            cursor: pointer;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top: #F4F4F4 4px solid;
+
+            &.selected {
+                font-weight: bold;
+                border-top: #0078D4 4px solid;
+            }
+        }
+    }
+
     #toolbar {
-        height: 150px;
+        font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
         width: 100%;
         box-sizing: border-box;
-        padding-right: 20px;
-        position: fixed;
-        background-color: white;
-        z-index: 100;
+        padding: 21px 20px 0;
 
-        .buttons {
-            margin-top: 10px;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
+        display: flex;
+        flex-direction: row;
+
+        .ms-Dropdown-container {
+            flex-grow: 1;
+            margin-right: 10px;
         }
     }
 
     .loading-overlay {
+        font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
         z-index: 999;
         background-color: rgba(255, 255, 255, 0.8);
     }
@@ -59,7 +87,18 @@ body {
     }
 
     .body {
-        margin-top: 150px;
+        position: relative;
+        flex-grow: 1;
+        padding: 20px;
+        font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+        overflow: scroll;
+        overflow-x: hidden;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE 10+ */
+    }
+
+    h2 {
+        margin-bottom: 16px;
     }
 
     .grammar-errors-list {
@@ -68,52 +107,144 @@ body {
     }
 
     .grammar-error {
-        padding: 5px 7px;
-        border: solid 2px #2B579A;
-        margin-bottom: 10px;
-        position: relative;
-        font-family: "Segoe UI", "Segoe UI Web", Arial, Verdana, sans-serif;
+        border: 1px solid #A6A6A6;
+        font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+        margin-bottom: 15px;
+
+        .reason {
+            border-bottom: 1px solid #A6A6A6;
+            padding: 15px 18px;
+            color: #33332D;
+            font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            font-size: 14px;
+            line-height: 16px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            cursor: pointer;
+
+            &.show {
+                border-bottom: 0px;
+            }
+    
+            .error-title {
+                padding-right: 10px;
+                border-right: 1px solid #C8C8C8;
+                flex-grow: 1;
+            }
+    
+            .chevron {
+                margin-left: 10px;
+            }
+        }
+    
+        .error-description {
+            border-bottom: 1px solid #A6A6A6;
+            padding: 0px 18px 10px;
+            color: #33332D;
+            font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            font-size: 12px;
+    
+            &.show {
+                display: flex;
+            }
+    
+            display: none;
+            mark {
+                font-weight: bold;
+            }
+        }
+        
+        .context {
+            display: block;
+            margin-top: 5px;
+            color: #33332D;
+            font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            font-size: 14px;
+            line-height: 16px;
+            padding: 10px 18px;
+            border-bottom: 1px solid #A6A6A6;
+    
+            &::before, &::after {
+                content: '…';
+            }
+    
+            mark {
+                font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+                background-color: transparent;
+                color: #0078D4;
+                font-weight: normal;
+                text-decoration: underline;
+                font-size: 14px;
+                line-height: 16px;
+            }
+        }
+    
+        .suggestions {
+            padding: 10px 18px;
+        }
+        
+        .suggestions-list {
+            margin-bottom: 5px;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        
+        .suggestions-heading {
+            font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            font-size: 14px;
+            line-height: 16px;
+            color: #33332D;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+    
+            span {
+                flex-grow: 1;
+            }
+    
+            .ignoreButton {
+                flex-grow: 0;
+            }
+        }
+        
+        .suggestion {
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
     }
     
-    .reason {
-        font-weight: bold;
-    }
-    
-    .context {
-        display: block;
-        margin-top: 5px;
-        color: #444444;
-    }
-    
-    mark {
-        background-color: transparent;
-        color: #FD2572;
-        font-weight: bold;
-        text-decoration: underline;
-    }
-    
-    .suggestions-list {
-        margin-bottom: 5px;
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-    
-    .suggestions-heading {
+
+    .ignored-tag-checkbox {
         margin-top: 10px;
-        margin-bottom: 5px;
-        font-weight: bold;
     }
-    
-    .suggestion {
-        font-weight: bold;
-        background-color: #55E87F;
-        padding: 2px 4px;
-        margin-right: 5px;
-        margin-bottom: 5px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        text-align: center;
+}
+
+.snackbar {
+    position: fixed;
+    bottom: 50px;
+    background: #F4F4F4;
+    border: 1px solid #979797;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.5);
+    font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    line-height: 16px;
+    color: #33332D;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 290px;
+    height: 50px;
+    padding: 10px;
+    box-sizing: border-box;
+
+    .label {
+        flex-grow: 1;
+    }
+
+    .actionButton {
+        flex-grow: 0;
+        margin-left: 10px;
     }
 }
