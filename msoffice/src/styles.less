@@ -87,6 +87,7 @@ body {
     }
 
     .body {
+        position: relative;
         flex-grow: 1;
         padding: 20px;
         font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
@@ -217,5 +218,33 @@ body {
 
     .ignored-tag-checkbox {
         margin-top: 10px;
+    }
+}
+
+.snackbar {
+    position: fixed;
+    bottom: 50px;
+    background: #F4F4F4;
+    border: 1px solid #979797;
+    box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.5);
+    font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+    font-size: 14px;
+    line-height: 16px;
+    color: #33332D;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: 290px;
+    height: 50px;
+    padding: 10px;
+    box-sizing: border-box;
+
+    .label {
+        flex-grow: 1;
+    }
+
+    .actionButton {
+        flex-grow: 0;
+        margin-left: 10px;
     }
 }
