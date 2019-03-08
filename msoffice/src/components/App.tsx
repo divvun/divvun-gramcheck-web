@@ -19,10 +19,6 @@ const availableTabs: TabItem[] = [
         label: 'List'
     },
     {
-        name: 'details',
-        label: 'Details',
-    },
-    {
         name: 'settings',
         label: 'Settings',
     },
