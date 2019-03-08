@@ -26,7 +26,8 @@ export default class GrammarErrorsList extends React.Component<GrammarErrorsList
                         key={`grammar-error-${lineIndex}-${errorIndex}`}
                         contextText={r.text}
                         errorText={e.error_text}
-                        reason={e.description}
+                        title={e.title}
+                        description={e.description}
                         lineIndex={lineIndex}
                         errorIndex={errorIndex}
                         suggestions={e.suggestions}

@@ -34,6 +34,7 @@ body {
         justify-content: center;
         border-top: 1px solid #95989A;
         padding-top: 2px;
+        flex-shrink: 0;
 
         .tab {
             font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
@@ -107,85 +108,111 @@ body {
         border: 1px solid #A6A6A6;
         font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
         margin-bottom: 15px;
-    }
-    
-    .reason {
-        border-bottom: 1px solid #A6A6A6;
-        padding: 15px 18px;
-        color: #33332D;
-        font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
-        font-size: 12px;
-        line-height: 16px;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        cursor: pointer;
 
-        span {
-            padding-right: 10px;
-            border-right: 1px solid #C8C8C8;
-            flex-grow: 1;
-        }
-
-        .chevron-down {
-            margin-left: 10px;
-        }
-    }
-    
-    .context {
-        display: block;
-        margin-top: 5px;
-        color: #33332D;
-        font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
-        font-size: 12px;
-        line-height: 16px;
-        padding: 10px 18px;
-        border-bottom: 1px solid #A6A6A6;
-
-        mark {
+        .reason {
+            border-bottom: 1px solid #A6A6A6;
+            padding: 15px 18px;
+            color: #33332D;
             font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
-            background-color: transparent;
-            color: #0078D4;
-            font-weight: normal;
-            text-decoration: underline;
-            font-size: 12px;
+            font-size: 14px;
             line-height: 16px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            cursor: pointer;
+
+            &.show {
+                border-bottom: 0px;
+            }
+    
+            .error-title {
+                padding-right: 10px;
+                border-right: 1px solid #C8C8C8;
+                flex-grow: 1;
+            }
+    
+            .chevron {
+                margin-left: 10px;
+            }
+        }
+    
+        .error-description {
+            border-bottom: 1px solid #A6A6A6;
+            padding: 0px 18px 10px;
+            color: #33332D;
+            font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            font-size: 12px;
+    
+            &.show {
+                display: flex;
+            }
+    
+            display: none;
+            mark {
+                font-weight: bold;
+            }
+        }
+        
+        .context {
+            display: block;
+            margin-top: 5px;
+            color: #33332D;
+            font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            font-size: 14px;
+            line-height: 16px;
+            padding: 10px 18px;
+            border-bottom: 1px solid #A6A6A6;
+    
+            &::before, &::after {
+                content: '…';
+            }
+    
+            mark {
+                font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+                background-color: transparent;
+                color: #0078D4;
+                font-weight: normal;
+                text-decoration: underline;
+                font-size: 14px;
+                line-height: 16px;
+            }
+        }
+    
+        .suggestions {
+            padding: 10px 18px;
+        }
+        
+        .suggestions-list {
+            margin-bottom: 5px;
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+        }
+        
+        .suggestions-heading {
+            font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+            font-size: 14px;
+            line-height: 16px;
+            color: #33332D;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+    
+            span {
+                flex-grow: 1;
+            }
+    
+            .ignoreButton {
+                flex-grow: 0;
+            }
+        }
+        
+        .suggestion {
+            margin-right: 5px;
+            margin-bottom: 5px;
         }
     }
-
-    .suggestions {
-        padding: 10px 18px;
-    }
     
-    .suggestions-list {
-        margin-bottom: 5px;
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-    
-    .suggestions-heading {
-        font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
-        font-size: 12px;
-        line-height: 16px;
-        color: #33332D;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-
-        span {
-            flex-grow: 1;
-        }
-
-        .ignoreButton {
-            flex-grow: 0;
-        }
-    }
-    
-    .suggestion {
-        margin-right: 5px;
-        margin-bottom: 5px;
-    }
 
     .ignored-tag-checkbox {
         margin-top: 10px;

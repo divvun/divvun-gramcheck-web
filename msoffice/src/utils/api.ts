@@ -7,6 +7,7 @@ export interface APIGrammarError {
     start_index: number;
     end_index: number;
     error_code: string;
+    title: string;
     description: string;
     suggestions: string[];
 }
