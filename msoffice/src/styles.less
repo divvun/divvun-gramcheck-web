@@ -17,6 +17,7 @@ body {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
 
     .error {
         margin-top: 10px;
@@ -85,9 +86,12 @@ body {
 
     .body {
         flex-grow: 1;
-        padding-left: 20px;
-        padding-right: 20px;
+        padding: 20px;
         font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+        overflow: scroll;
+        overflow-x: hidden;
+        scrollbar-width: none; /* Firefox */
+        -ms-overflow-style: none;  /* IE 10+ */
     }
 
     h2 {
