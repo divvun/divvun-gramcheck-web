@@ -99,7 +99,8 @@ export default class GrammarError extends React.Component<GrammarErrorProps, Gra
                 </div>
                 <Highlighter
                     className={(this.state.showErrorDescription ? 'show ' : '') + 'error-description'}
-                    search={/".+?"/ig}
+                    search={/".+?"/}
+                    matchClass=''
                 >
                     { this.props.description }
                 </Highlighter>
