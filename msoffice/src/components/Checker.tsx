@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { loadSettings, SELECTED_LANGUAGE_KEY, ignoreIndividualError, getRange, splitInParagraphs, saveSettings, AVAILABLE_LANGUAGES, debounce } from '../utils';
-import { GrammarCheckApiResponse, apiRequestGrammarCheck, APIGrammarError } from '../utils/api';
+import { loadSettings, SELECTED_LANGUAGE_KEY, ignoreIndividualError, getRange, splitInParagraphs, saveSettings, debounce } from '../utils';
+import { GrammarCheckApiResponse, apiRequestGrammarCheck, APIGrammarError, apiRequestLanguageOptions } from '../utils/api';
 import { Overlay, Spinner, SpinnerSize, PrimaryButton, Dropdown, IDropdownOption } from 'office-ui-fabric-react';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
@@ -22,6 +22,10 @@ interface CheckerState {
     loading: boolean;
     requestsCounter: number;
     selectedLanguage: string | undefined;
+    availableLanguages: {
+        key: string,
+        text: string,
+    }[];
 }
 
 export default class Checker extends React.Component<CheckerProps, CheckerState> {
@@ -36,7 +40,21 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
             loading: false,
             requestsCounter: 0,
             selectedLanguage: savedLanguage || undefined,
+            availableLanguages: [],
         };
+    }
+
+    async componentWillMount() {
+        const languageOptions = await apiRequestLanguageOptions();
+        const availableLanguages = Object.keys(languageOptions.available.grammar).map((k) => {
+            return {
+                key: k,
+                text: languageOptions.available.grammar[k],
+            };
+        });
+        this.setState({
+            availableLanguages,
+        });
     }
 
     startLoading = () => {
@@ -252,7 +270,7 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                 <Dropdown
                     placeHolder='Select language'
                     ariaLabel='Selecte a language from the list'
-                    options={AVAILABLE_LANGUAGES}
+                    options={this.state.availableLanguages}
                     selectedKey={this.state.selectedLanguage}
                     onChanged={this.changeLanguage}
                     className='select-language'
