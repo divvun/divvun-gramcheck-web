@@ -1,4 +1,4 @@
-import { normalizeLineEndings, loadSettings, IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, AVAILABLE_LANGUAGES, filterIgnoredIndividualErrors as filterIgnoredIndividualErrors, filterIgnoredErrorTags } from '.';
+import { normalizeLineEndings, loadSettings, IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, filterIgnoredIndividualErrors as filterIgnoredIndividualErrors, filterIgnoredErrorTags } from '.';
 
 const apiUrl = 'https://api-giellalt.uit.no/';
 
@@ -71,11 +71,26 @@ export interface GrammarCheckerAvailablePreferences {
 export async function apiRequestGrammarCheckerPreferences(): Promise<GrammarCheckerAvailablePreferences> {
     let selectedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
     if (!selectedLanguage) {
-        selectedLanguage = AVAILABLE_LANGUAGES[0].key;
+        let availableLangs = await apiRequestLanguageOptions();
+        selectedLanguage = Object.keys(availableLangs.available.grammar)[0] || '<no_lang>';
     }
 
     return apiRequest({
         url: `${apiUrl}preferences/grammar/${selectedLanguage}`,
+        method: 'GET',
+    });
+}
+
+export interface LanguageOptions {
+    available: {
+        grammar: {[key: string]: string},
+        speller: {[key: string]: string},
+    },
+}
+
+export async function apiRequestLanguageOptions(): Promise<LanguageOptions> {
+    return apiRequest({
+        url: `${apiUrl}languages`,
         method: 'GET',
     });
 }
