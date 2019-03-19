@@ -79,3 +79,17 @@ export async function apiRequestGrammarCheckerPreferences(): Promise<GrammarChec
         method: 'GET',
     });
 }
+
+export interface LanguageOptions {
+    available: {
+        grammar: {[key: string]: string},
+        speller: {[key: string]: string},
+    },
+}
+
+export async function apiRequestLanguageOptions(): Promise<LanguageOptions> {
+    return apiRequest({
+        url: `${apiUrl}languages`,
+        method: 'GET',
+    });
+}
