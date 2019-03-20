@@ -16,8 +16,8 @@
   <ProviderName>Divvun</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <!-- The display name of your add-in. Used on the store and various places of the Office UI such as the add-ins dialog. -->
-  <DisplayName DefaultValue="Sámi Grammar Checker" />
-  <Description DefaultValue="A grammar checker for the Sámi languages to be used with Microsoft Office Online"/>
+  <DisplayName DefaultValue="Divvun Grammar Checker" />
+  <Description DefaultValue="A grammar checker for the Sámi (and other) languages to be used with Microsoft Office Online"/>
 
   <!-- Icon for your add-in. Used on installation screens and the add-ins dialog. -->
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-32.png" />
@@ -128,14 +128,14 @@
       </bt:Urls>
       <!-- ShortStrings max characters==125. -->
       <bt:ShortStrings>
-        <bt:String id="Contoso.TaskpaneButton.Label" DefaultValue="Sámi Grammar Checker" />
+        <bt:String id="Contoso.TaskpaneButton.Label" DefaultValue="Divvun Grammar Checker" />
         <bt:String id="Contoso.Group1Label" DefaultValue="Commands Group" />
-        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Sámi grammar checker and fix suggestions" />
+        <bt:String id="Contoso.GetStarted.Title" DefaultValue="Divvun grammar checker and fix suggestions" />
       </bt:ShortStrings>
       <!-- LongStrings max characters==250. -->
       <bt:LongStrings>
-        <bt:String id="Contoso.TaskpaneButton.Tooltip" DefaultValue="Open Sámi Grammar Checker Sidebar" />
-        <bt:String id="Contoso.GetStarted.Description" DefaultValue="The Sámi Grammar Checker loaded succesfully. Go to the HOME tab and click the 'Sámi Grammar Checker' button to get started." />
+        <bt:String id="Contoso.TaskpaneButton.Tooltip" DefaultValue="Open Divvun Grammar Checker Sidebar" />
+        <bt:String id="Contoso.GetStarted.Description" DefaultValue="The Divvun Grammar Checker loaded succesfully. Go to the HOME tab and click the 'Divvun Grammar Checker' button to get started." />
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
