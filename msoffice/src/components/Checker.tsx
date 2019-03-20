@@ -100,6 +100,8 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
     changeLanguage = (option: IDropdownOption): void => {
         this.setState({
             selectedLanguage: option.key.toString(),
+            // reset results if you switch language
+            apiResultsByParagraph: [],
         }, () => {
             saveSettings(SELECTED_LANGUAGE_KEY, option.key.toString());
         });
@@ -108,6 +110,8 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
     runGrammarCheckOnWholeText = () => {
         this.setState({
             requestsCounter: this.state.requestsCounter + 1,
+            // reset results if you rerun on whole text
+            apiResultsByParagraph: [],
         });
         this.runGrammarCheck(-1);
     }
@@ -164,6 +168,7 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                 const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
                 const paragraphText = this.getLineText(lineIndex);
                 const errorRange = await getRange(context, paragraphText, errorText);
+                console.log(errorText, paragraphText, errorRange);
 
                 errorRange.select(clear ? 'Start' : 'Select');
                 await context.sync();
