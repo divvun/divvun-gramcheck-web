@@ -55,13 +55,17 @@ export async function getRange(context: Word.RequestContext, paragraph: string, 
 
     let fullRange: Word.Range | null = null;
     for (let index = 0; index < chunks.length; index++) {
-        const chunk = chunks[index];
+        const chunk = chunks[index]
+
         const paragraphRangeCollection = body.search(chunk, {
             matchCase: true,
         });
 
         const paragraphRange = paragraphRangeCollection.getFirstOrNullObject();
-        if (!paragraphRange) {
+        paragraphRange.load("isNullObject")
+        await context.sync()
+
+        if (!paragraphRange || paragraphRange.isNullObject) {
             return Promise.reject(new Error('Could not find range for chunk: ' + chunk));
         }
 
@@ -81,11 +85,18 @@ export async function getRange(context: Word.RequestContext, paragraph: string, 
     });
 
     const foundErrorRange = errorTextRangeCollection.getFirstOrNullObject();
-    if (!foundErrorRange) {
+    foundErrorRange.load("isNullObject")
+    await context.sync()
+
+    if (!foundErrorRange || foundErrorRange.isNullObject) {
         return Promise.reject(new Error('The range for the error wasn\'t found'));
     }
 
     return foundErrorRange;
+}
+
+function isInvalidSearchCharacter(char: string): boolean {
+    return char == "\u000b"
 }
 
 function splitStringToChunks(string: string, chunkLength: number): string[] {
@@ -94,12 +105,14 @@ function splitStringToChunks(string: string, chunkLength: number): string[] {
     let tempString: string = '';
     let counter: number = 1;
     for (const char of string) {
-        if (counter > chunkLength) {
+        const invalidChar = isInvalidSearchCharacter(char)
+        if (counter > chunkLength || (counter > 0 && invalidChar)) {
             chunks.push(tempString);
             tempString = '';
             counter = 1;
         }
-        tempString += char;
+        if (!invalidChar)
+            tempString += char;
         counter++;
     }
 
@@ -112,7 +125,7 @@ function splitStringToChunks(string: string, chunkLength: number): string[] {
 export function debounce(func: Function, wait: number, immediate: boolean = false) {
     let timeout: number | null;
 
-    return function() {
+    return function () {
         const context = this;
         const args = arguments;
 
