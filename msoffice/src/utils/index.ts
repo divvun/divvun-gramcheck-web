@@ -55,15 +55,15 @@ export async function getRange(context: Word.RequestContext, paragraph: string, 
 
     let fullRange: Word.Range | null = null;
     for (let index = 0; index < chunks.length; index++) {
-        const chunk = chunks[index]
+        const chunk = chunks[index];
 
         const paragraphRangeCollection = body.search(chunk, {
             matchCase: true,
         });
 
         const paragraphRange = paragraphRangeCollection.getFirstOrNullObject();
-        paragraphRange.load("isNullObject")
-        await context.sync()
+        paragraphRange.load('isNullObject');
+        await context.sync();
 
         if (!paragraphRange || paragraphRange.isNullObject) {
             return Promise.reject(new Error('Could not find range for chunk: ' + chunk));
@@ -85,8 +85,8 @@ export async function getRange(context: Word.RequestContext, paragraph: string, 
     });
 
     const foundErrorRange = errorTextRangeCollection.getFirstOrNullObject();
-    foundErrorRange.load("isNullObject")
-    await context.sync()
+    foundErrorRange.load('isNullObject');
+    await context.sync();
 
     if (!foundErrorRange || foundErrorRange.isNullObject) {
         return Promise.reject(new Error('The range for the error wasn\'t found'));
@@ -97,7 +97,7 @@ export async function getRange(context: Word.RequestContext, paragraph: string, 
 
 function isInvalidSearchCharacter(char: string): boolean {
     const code = char.charCodeAt(0);
-    return (code >= 0 && code <= 0x1F) || code == 0x7f || (code >= 0x80 && code <= 0x9F)
+    return (code >= 0 && code <= 0x1F) || code === 0x7f || (code >= 0x80 && code <= 0x9F);
 }
 
 function splitStringToChunks(string: string, chunkLength: number): string[] {
@@ -106,7 +106,7 @@ function splitStringToChunks(string: string, chunkLength: number): string[] {
     let tempString: string = '';
     let counter: number = 1;
     for (const char of string) {
-        const invalidChar = isInvalidSearchCharacter(char)
+        const invalidChar = isInvalidSearchCharacter(char);
         if (counter > chunkLength || (counter > 0 && invalidChar)) {
             chunks.push(tempString);
             tempString = '';
