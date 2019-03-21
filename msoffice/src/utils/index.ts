@@ -96,7 +96,8 @@ export async function getRange(context: Word.RequestContext, paragraph: string, 
 }
 
 function isInvalidSearchCharacter(char: string): boolean {
-    return char == "\u000b"
+    const code = char.charCodeAt(0);
+    return (code >= 0 && code <= 0x1F) || code == 0x7f || (code >= 0x80 && code <= 0x9F)
 }
 
 function splitStringToChunks(string: string, chunkLength: number): string[] {
@@ -111,9 +112,10 @@ function splitStringToChunks(string: string, chunkLength: number): string[] {
             tempString = '';
             counter = 1;
         }
-        if (!invalidChar)
+        if (!invalidChar) {
             tempString += char;
-        counter++;
+            counter++;
+        }
     }
 
     chunks.push(tempString);
