@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { loadSettings, SELECTED_LANGUAGE_KEY, ignoreIndividualError, getRange, splitInParagraphs, saveSettings, debounce } from '../utils';
+import { loadSettings, SELECTED_LANGUAGE_KEY, ignoreIndividualError, getRange, saveSettings, debounce } from '../utils';
 import { GrammarCheckApiResponse, apiRequestGrammarCheck, APIGrammarError, apiRequestLanguageOptions } from '../utils/api';
 import { Overlay, Spinner, SpinnerSize, PrimaryButton, Dropdown, IDropdownOption } from 'office-ui-fabric-react';
 import GrammarErrorsList from './GrammarErrrorsList';
@@ -126,9 +126,12 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
         Word.run(async (context) => {
             const body = context.document.body;
             try {
-                context.load(body);
+                context.load(body.paragraphs);
                 await context.sync();
-                const paragraphs = splitInParagraphs(body.text);
+                const paragraphCollection = body.paragraphs.load({
+                    text: true,
+                });
+                const paragraphs = paragraphCollection.items.map((p) => p.text);
                 const language = this.state.selectedLanguage;
 
                 let paragraphIndex = 0;
@@ -168,7 +171,6 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                 const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
                 const paragraphText = this.getLineText(lineIndex);
                 const errorRange = await getRange(context, paragraphText, errorText);
-                console.log(errorText, paragraphText, errorRange);
 
                 errorRange.select(clear ? 'Start' : 'Select');
                 await context.sync();
