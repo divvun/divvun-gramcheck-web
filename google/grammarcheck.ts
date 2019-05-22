@@ -2,7 +2,7 @@
  * @OnlyCurrentDoc Limits the script to only accessing the current sheet.
  */
 
-const apiUrl = 'https://api-giellalt.uit.no/grammar/';
+const apiUrl = 'https://api-giellalt.uit.no/';
 
 function onOpen(e) {
     DocumentApp.getUi().createAddonMenu()
@@ -114,6 +114,30 @@ function clipContextText(text: string, errorText: string): string {
     return text;
 }
 
+interface ApiRequestOptions {
+    method: 'get' | 'post',
+    url: string,
+    payload?: Object,
+}
+
+function apiRequest(options: ApiRequestOptions) {
+    Logger.log("api request " + JSON.stringify(options))
+    const goptions: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+        method: options.method,
+        muteHttpExceptions: true,
+        contentType: 'application/json',
+        payload: options.payload ? JSON.stringify(options.payload) : null,
+    };
+    const response = UrlFetchApp.fetch(options.url, goptions);
+
+    if (response.getResponseCode() !== 200) {
+        Logger.log("error " + response.getResponseCode())
+        throw Error('Cannot get response from grammar checking API');
+    }
+
+    return JSON.parse(response.getContentText());
+}
+
 export interface APIGrammarError {
     error_text: string;
     start_index: number;
@@ -127,23 +151,47 @@ interface GrammarCheckApiResponse {
     text: string;
     errs: APIGrammarError[];
 }
+
 function grammarCheckApiRequest(lang: string, text: string): GrammarCheckApiResponse {
-    const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
+    return apiRequest({
         method: 'post',
-        muteHttpExceptions: true,
-        contentType: 'application/json',
-        payload: JSON.stringify({
+        url: `${apiUrl}grammar/${lang}`,
+        payload: {
             text: normalizeLineEndings(text),
-        }),
-    };
-    const response = UrlFetchApp.fetch(`${apiUrl}${lang}`, options);
-
-    if (response.getResponseCode() !== 200) {
-        throw Error('Cannot get response from grammar checking API');
-    }
-
-    return JSON.parse(response.getContentText());
+        }
+    })
 }
+
+export interface LanguageOptions {
+    available: {
+        grammar: { [key: string]: string },
+        speller: { [key: string]: string },
+    },
+}
+
+function apiRequestLanguageOptions(): LanguageOptions {
+    return apiRequest({
+        url: `${apiUrl}languages`,
+        method: 'get',
+    });
+}
+
+export interface GrammarCheckerAvailablePreferences {
+    error_tags: { [key: string]: string }
+}
+
+// export function apiRequestGrammarCheckerPreferences(): GrammarCheckerAvailablePreferences {
+//     let selectedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
+//     if (!selectedLanguage) {
+//         let availableLangs = apiRequestLanguageOptions();
+//         selectedLanguage = Object.keys(availableLangs.available.grammar)[0] || '<no_lang>';
+//     }
+
+//     return apiRequest({
+//         url: `${apiUrl}preferences/grammar/${selectedLanguage}`,
+//         method: 'get',
+//     });
+// }
 
 function runCorrection(errorText: string, correction: string) {
     Logger.log('Editing: ' + errorText + ', ' + correction);

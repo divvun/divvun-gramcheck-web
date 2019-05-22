@@ -1,7 +1,32 @@
 <script>
     $(function () {
         $('#run-check').click(runGrammarCheck);
+        refreshLanguagesList();
     });
+
+    function refreshLanguagesList() {
+        var runButton = $('#run-check')
+        runButton.disabled = true
+        var select = $('select[name="language"]')
+        select.disabled = true
+
+        google.script.run
+            .withSuccessHandler(
+                function (result, element) {
+                    var languages = result.available.grammar
+                    element.empty()
+                    for (var lang in languages) {
+                        element.append(new Option(languages[lang], lang))
+                    }
+                    runButton.disabled = false
+                })
+            .withFailureHandler(
+                function (msg, element) {
+                    showError(msg, element)
+                })
+            .withUserObject(select)
+            .apiRequestLanguageOptions();
+    }
 
     function runGrammarCheck() {
         this.disabled = true;
