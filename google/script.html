@@ -1,0 +1,51 @@
+<script>
+    $(function () {
+        $('#run-check').click(runGrammarCheck);
+    });
+
+    function runGrammarCheck() {
+        this.disabled = true;
+        $('#error').remove();
+
+        var lang = $('select[name="language"] option:selected').val();
+        google.script.run
+            .withSuccessHandler(
+                function (grammarCheckResultsHtml, element) {
+                    element.disabled = false;
+                    $('#results').html(grammarCheckResultsHtml);
+                    $('.suggestion').click(runCorrection);
+                })
+            .withFailureHandler(
+                function (msg, element) {
+                    showError(msg, $('#button-bar'));
+                    element.disabled = false;
+                })
+            .withUserObject(this)
+            .runGrammarCheckOnWholeText(lang);
+    }
+
+    function runCorrection() {
+        var errorText = $(this).attr('data-error-text');
+        var correction = $(this).attr('data-correction');
+        var parentIndex = $(this).attr('data-parent-index');
+        var parent = $(this).closest('.grammar-error');
+
+        google.script.run
+            .withSuccessHandler(function () {
+                parent.slideUp(300, function () {
+                    runGrammarCheck();
+                    parent.remove();
+                });
+            })
+            .withFailureHandler(function (message) {
+                showError(message, this);
+            })
+            .withUserObject(this)
+            .runCorrection(errorText, correction);
+    }
+
+    function showError(msg, element) {
+        var div = $('<div id="error" class="error">' + msg + '</div>');
+        $(element).after(div);
+    }
+</script>

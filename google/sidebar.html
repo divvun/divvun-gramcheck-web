@@ -1,134 +1,36 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <base target="_top">
-    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
-    <!-- The CSS package above applies Google styling to buttons and other elements. -->
 
-    <style>
-      #results {
-        margin-top: 20px;
-      }
-      
-      .grammar-error {
-        padding: 5px 7px;
-        border: 1px solid #E0E6E8;
-        margin-bottom: 10px;
-        position: relative;
-      }
-      
-      .reason {
-        font-weight: bold;
-      }
-      
-      .context {
-        color: #7388A1;
-      }
-      
-      i,
-      .grammar-error-text {
-        color: #FD2572;
-        font-weight: bold;
-        text-decoration: underline;
-      }
-      
-      .suggestions-list {
-        margin-bottom: 5px;
-        display: flex;
-        flex-direction: row;
-        flex-wrap: wrap;
-      }
-      
-      .suggestions-heading {
-        margin-top: 10px;
-        margin-bottom: 5px;
-        font-weight: bold;
-      }
-      
-      .suggestion {
-        font-weight: bold;
-        background-color: #55E87F;
-        padding: 2px 4px;
-        margin-right: 5px;
-        margin-bottom: 5px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        text-align: center;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="sidebar">
-      <form>
-        <div class="block col-contain">
-          <div class="col-one">
-            <select name="language">
-              <option value="se">North Sámi</option>
-              <option value="sma">South Sámi</option>
-            </select>
-          </div>
+<head>
+  <base target="_top">
+  <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+  <!-- The CSS package above applies Google styling to buttons and other elements. -->
+
+  <?!= include("style") ?>
+</head>
+
+<body>
+  <div class="sidebar">
+    <form>
+      <div class="block col-contain">
+        <div class="col-one">
+          <select name="language">
+            <option value="se">North Sámi</option>
+            <option value="sma">South Sámi</option>
+          </select>
         </div>
-        <div class="block" id="button-bar">
-          <button class="blue" id="run-check">Run grammar check</button>
-        </div>
+      </div>
+      <div class="block" id="button-bar">
+        <button class="blue" id="run-check">Run grammar check</button>
+      </div>
 
-        <div id="results">
-        </div>
-      </form>
-    </div>
+      <div id="results">
+      </div>
+    </form>
+  </div>
 
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-    <script>
-      $(function() {
-        $('#run-check').click(runGrammarCheck);
-      });
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+  <?!= include("script") ?>
+</body>
 
-      function runGrammarCheck() {
-        this.disabled = true;
-        $('#error').remove();
-
-        var lang = $('select[name="language"] option:selected').val();
-        google.script.run
-          .withSuccessHandler(
-            function(grammarCheckResultsHtml, element) {
-              element.disabled = false;
-              $('#results').html(grammarCheckResultsHtml);
-              $('.suggestion').click(runCorrection);
-            })
-          .withFailureHandler(
-            function(msg, element) {
-              showError(msg, $('#button-bar'));
-              element.disabled = false;
-            })
-          .withUserObject(this)
-          .runGrammarCheckOnWholeText(lang);
-      }
-
-      function runCorrection() {
-        var errorText = $(this).attr('data-error-text');
-        var correction = $(this).attr('data-correction');
-        var parentIndex = $(this).attr('data-parent-index');
-        var parent = $(this).closest('.grammar-error');
-
-        google.script.run
-          .withSuccessHandler(function() {
-            parent.slideUp(300, function() {
-              runGrammarCheck();
-              parent.remove();
-            });
-          })
-          .withFailureHandler(function(message) {
-            showError(message, this);
-          })
-          .withUserObject(this)
-          .runCorrection(errorText, correction);
-      }
-
-      function showError(msg, element) {
-        var div = $('<div id="error" class="error">' + msg + '</div>');
-        $(element).after(div);
-      }
-    </script>
-  </body>
 </html>

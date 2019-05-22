@@ -17,7 +17,8 @@ Steps to build and deploy for your account on google:
 
 - npm install
 - clasp login (this step will open a browser on your machine to do some verification)
-- clasp create
+- clasp create (this seems optional)
+- Enable Apps Script API at https://script.google.com/home/usersettings if you haven't (the next step will ask you to do this anyway)
 - npm run push
 - npm run open
 

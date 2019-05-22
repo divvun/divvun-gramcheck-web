@@ -15,8 +15,9 @@ function onInstall(e) {
 }
 
 function showSidebar() {
-    var ui = HtmlService.createHtmlOutputFromFile('sidebar')
-      .setTitle('Grammar check');
+    var ui = HtmlService.createTemplateFromFile('sidebar')
+        .evaluate()
+        .setTitle('Grammar check');
     DocumentApp.getUi().showSidebar(ui);
 }
 
