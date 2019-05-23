@@ -4,6 +4,10 @@
 
 const apiUrl = 'https://api-giellalt.uit.no/';
 
+const IGNORED_ERROR_TAGS_KEY = 'ignoredErrorTags';
+const SELECTED_LANGUAGE_KEY = 'selectedLanguage';
+const IGNORED_ERRORS_KEY = 'ignoredIndividualErrors';
+
 function onOpen(e) {
     DocumentApp.getUi().createAddonMenu()
         .addItem('Grammar check', 'showSidebar')
@@ -209,7 +213,28 @@ function runCorrection(errorText: string, correction: string) {
     }
 }
 
+function changeLanguage(key: string) {
+    saveSettings(SELECTED_LANGUAGE_KEY, key);
+}
+
+function getSelectedLanguage(): string {
+    return loadSettings(SELECTED_LANGUAGE_KEY);
+}
+
 function include(filename) {
     return HtmlService.createHtmlOutputFromFile(filename)
         .getContent();
+}
+
+function loadSettings(key: string): string | null {
+    const userProperties = PropertiesService.getUserProperties();
+    const result = userProperties.getProperty(key);
+    Logger.log("load " + key + " = " + result);
+    return result;
+}
+
+function saveSettings(key: string, value: string) {
+    const userProperties = PropertiesService.getUserProperties();
+    Logger.log("save " + key + " = " + value);
+    userProperties.setProperty(key, value);
 }

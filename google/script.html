@@ -1,15 +1,36 @@
 <script>
     $(function () {
         $('#run-check').click(runGrammarCheck);
-        refreshLanguagesList();
+        $('select[name="language"]').change(selectedLanguageChanged)
+        refreshLanguagesList(function () {
+            loadSettings();
+        });
     });
 
-    function refreshLanguagesList() {
-        var runButton = $('#run-check')
-        runButton.disabled = true
-        var select = $('select[name="language"]')
-        select.disabled = true
+    function selectedLanguageChanged() {
+        var lang = $('select[name="language"] option:selected').val();
+        console.log("change lang", lang)
+        google.script.run.changeLanguage(lang);
+        $('#error').remove();
+        $('#results').html("")
+    }
 
+    function loadSettings(onSuccess, onFailure) {
+        var select = $('select[name="language"]')
+        google.script.run
+            .withSuccessHandler(
+                function (result, element) {
+                    element.val(result)
+                    if (onSuccess)
+                        onSuccess()
+                })
+            .withFailureHandler(onFailure)
+            .withUserObject(select)
+            .getSelectedLanguage();
+    }
+
+    function refreshLanguagesList(onSuccess, onFailure) {
+        var select = $('select[name="language"]')
         google.script.run
             .withSuccessHandler(
                 function (result, element) {
@@ -18,12 +39,11 @@
                     for (var lang in languages) {
                         element.append(new Option(languages[lang], lang))
                     }
-                    runButton.disabled = false
+
+                    if (onSuccess)
+                        onSuccess()
                 })
-            .withFailureHandler(
-                function (msg, element) {
-                    showError(msg, element)
-                })
+            .withFailureHandler(onFailure)
             .withUserObject(select)
             .apiRequestLanguageOptions();
     }
