@@ -25,10 +25,9 @@ function showSidebar() {
     DocumentApp.getUi().showSidebar(ui);
 }
 
-function tagsAnyIgnored_(tags: string[]) {
+function tagsAnyIgnored_(ignoredTags: string[], tags: string[]) {
     // Current behavior is, if any of the tags in the list is ignored, the entire category is
-    const ignoredTags = getIgnoredTags();
-    for (const tag in tags) {
+    for (const tag of tags) {
         if (ignoredTags.indexOf(tag) != -1)
             return true
     }
@@ -38,6 +37,7 @@ function tagsAnyIgnored_(tags: string[]) {
 function showPreferences() {
     const template = HtmlService.createTemplateFromFile('preferences');
     const errorTags = apiRequestGrammarCheckerPreferences().error_tags;
+    const ignoredTags = getIgnoredTags();
 
     // Group tags by their localized name
     const groupedTags = {}
@@ -49,7 +49,7 @@ function showPreferences() {
     template['errorTags'] = Object.keys(groupedTags).map(name => ({
         tag: groupedTags[name].join(","),
         name: name,
-        ignored: tagsAnyIgnored_(groupedTags[name])
+        ignored: tagsAnyIgnored_(ignoredTags, groupedTags[name])
     }));
 
     const ui = template.evaluate();

@@ -5,6 +5,22 @@
     });
 
     function savePreferences() {
+        var ignoredTags = []
+        $.each($("input[name='ignoredTag']:checked"), function() {
+            var tags = $(this).val().split(",")
+            ignoredTags = ignoredTags.concat(tags)
+        })
+
+        console.log("saving tags", ignoredTags)
+        google.script.run
+            .withSuccessHandler(function () {
+                google.script.host.close()
+            })
+            .withFailureHandler(function(msg) {
+                showError(msg, $('#button-bar'));
+            })
+            .saveIgnoredTags(ignoredTags);
+        
     }
 
     function closeDialog() {
