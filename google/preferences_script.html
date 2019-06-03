@@ -5,19 +5,21 @@
     });
 
     function savePreferences() {
+        setLoading(true)
+
         var ignoredTags = []
         $.each($("input[name='ignoredTag']:checked"), function() {
             var tags = $(this).val().split(",")
             ignoredTags = ignoredTags.concat(tags)
         })
 
-        console.log("saving tags", ignoredTags)
         google.script.run
             .withSuccessHandler(function () {
                 google.script.host.close()
             })
             .withFailureHandler(function(msg) {
                 showError(msg, $('#button-bar'));
+                setLoading(false)
             })
             .saveIgnoredTags(ignoredTags);
         
@@ -25,5 +27,14 @@
 
     function closeDialog() {
         google.script.host.close()
+    }
+
+    function setLoading(loading) {
+        var dialog = $(".dialog")
+        if (loading) {
+            disableAll(dialog)
+        } else {
+            enableAll(dialog)
+        }
     }
 </script>

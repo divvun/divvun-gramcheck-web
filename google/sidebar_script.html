@@ -3,17 +3,33 @@
         $('#run-check').click(runGrammarCheck);
         $('#open-preferences').click(openPreferences);
         $('select[name="language"]').change(selectedLanguageChanged)
+        
+        setLoading(true)
         refreshLanguagesList(function () {
-            loadSettings();
+            loadSettings(function() {
+                setLoading(false)
+            });
         });
     });
 
     function selectedLanguageChanged() {
         var lang = $('select[name="language"] option:selected').val();
-        console.log("change lang", lang)
-        google.script.run.changeLanguage(lang);
+        setLoading(true)
+
         $('#error').remove();
         $('#results').html("")
+
+        google.script.run
+            .withSuccessHandler(function() {
+                setLoading(false)
+            })
+            .withFailureHandler(function(msg, element) {
+                showError(msg, element);
+                setLoading(false)
+            })
+            .withUserObject(this)
+            .changeLanguage(lang);
+
     }
 
     function loadSettings(onSuccess, onFailure) {
@@ -50,7 +66,11 @@
     }
 
     function openPreferences() {
+        setLoading(true)
         google.script.run
+            .withSuccessHandler(function() {
+                setLoading(false)
+            })
             .withFailureHandler(
                 function (msg, element) {
                     showError(msg, $('#button-bar'));
@@ -60,21 +80,21 @@
     }
 
     function runGrammarCheck() {
-        this.disabled = true;
+        setLoading(true)
         $('#error').remove();
 
         var lang = $('select[name="language"] option:selected').val();
         google.script.run
             .withSuccessHandler(
                 function (grammarCheckResultsHtml, element) {
-                    element.disabled = false;
+                    setLoading(false)
                     $('#results').html(grammarCheckResultsHtml);
                     $('.suggestion').click(runCorrection);
                 })
             .withFailureHandler(
                 function (msg, element) {
                     showError(msg, $('#button-bar'));
-                    element.disabled = false;
+                    setLoading(false)
                 })
             .withUserObject(this)
             .runGrammarCheckOnWholeText(lang);
@@ -86,17 +106,29 @@
         var parentIndex = $(this).attr('data-parent-index');
         var parent = $(this).closest('.grammar-error');
 
+        setLoading(true)
         google.script.run
             .withSuccessHandler(function () {
                 parent.slideUp(300, function () {
                     runGrammarCheck();
                     parent.remove();
                 });
+                setLoading(false)
             })
             .withFailureHandler(function (message) {
                 showError(message, this);
+                setLoading(false)
             })
             .withUserObject(this)
             .runCorrection(errorText, correction);
+    }
+
+    function setLoading(loading) {
+        var sidebar = $(".sidebar")
+        if (loading) {
+            disableAll(sidebar)
+        } else {
+            enableAll(sidebar)
+        }
     }
 </script>
