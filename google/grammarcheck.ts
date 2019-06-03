@@ -25,6 +25,37 @@ function showSidebar() {
     DocumentApp.getUi().showSidebar(ui);
 }
 
+function tagsAnyIgnored_(tags: string[]) {
+    // Current behavior is, if any of the tags in the list is ignored, the entire category is
+    const ignoredTags = getIgnoredTags();
+    for (const tag in tags) {
+        if (ignoredTags.indexOf(tag) != -1)
+            return true
+    }
+    return false
+}
+
+function showPreferences() {
+    const template = HtmlService.createTemplateFromFile('preferences');
+    const errorTags = apiRequestGrammarCheckerPreferences().error_tags;
+
+    // Group tags by their localized name
+    const groupedTags = {}
+    Object.keys(errorTags).forEach((tag) => {
+        const name = errorTags[tag]
+        groupedTags[name] = (groupedTags[name] || []).concat([tag])
+    })
+
+    template['errorTags'] = Object.keys(groupedTags).map(name => ({
+        tag: groupedTags[name].join(","),
+        name: name,
+        ignored: tagsAnyIgnored_(groupedTags[name])
+    }));
+
+    const ui = template.evaluate();
+    DocumentApp.getUi().showModalDialog(ui, "Preferences");
+};
+
 function splitInParagraphs(text: string): string[] {
     const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     return normalizedText.split('\n');
@@ -166,7 +197,7 @@ function grammarCheckApiRequest(lang: string, text: string): GrammarCheckApiResp
     })
 }
 
-export interface LanguageOptions {
+interface LanguageOptions {
     available: {
         grammar: { [key: string]: string },
         speller: { [key: string]: string },
@@ -180,22 +211,22 @@ function apiRequestLanguageOptions(): LanguageOptions {
     });
 }
 
-export interface GrammarCheckerAvailablePreferences {
+interface GrammarCheckerAvailablePreferences {
     error_tags: { [key: string]: string }
 }
 
-// export function apiRequestGrammarCheckerPreferences(): GrammarCheckerAvailablePreferences {
-//     let selectedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
-//     if (!selectedLanguage) {
-//         let availableLangs = apiRequestLanguageOptions();
-//         selectedLanguage = Object.keys(availableLangs.available.grammar)[0] || '<no_lang>';
-//     }
+function apiRequestGrammarCheckerPreferences(): GrammarCheckerAvailablePreferences {
+    let selectedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
+    if (!selectedLanguage) {
+        let availableLangs = apiRequestLanguageOptions();
+        selectedLanguage = Object.keys(availableLangs.available.grammar)[0] || '<no_lang>';
+    }
 
-//     return apiRequest({
-//         url: `${apiUrl}preferences/grammar/${selectedLanguage}`,
-//         method: 'get',
-//     });
-// }
+    return apiRequest({
+        url: `${apiUrl}preferences/grammar/${selectedLanguage}`,
+        method: 'get',
+    });
+}
 
 function runCorrection(errorText: string, correction: string) {
     Logger.log('Editing: ' + errorText + ', ' + correction);
@@ -219,6 +250,14 @@ function changeLanguage(key: string) {
 
 function getSelectedLanguage(): string {
     return loadSettings(SELECTED_LANGUAGE_KEY);
+}
+
+function getIgnoredTags(): string[] {
+    return (loadSettings(IGNORED_ERROR_TAGS_KEY) || "").split(",")
+}
+
+function saveIgnoredTags(tags: string[]) {
+    saveSettings(IGNORED_ERROR_TAGS_KEY, tags.join(","))
 }
 
 function include(filename) {

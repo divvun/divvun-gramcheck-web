@@ -1,0 +1,13 @@
+<script>
+    $(function () {
+        $('#cancel').click(closeDialog);
+        $('#save').click(savePreferences);
+    });
+
+    function savePreferences() {
+    }
+
+    function closeDialog() {
+        google.script.host.close()
+    }
+</script>

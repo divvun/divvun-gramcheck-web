@@ -11,24 +11,23 @@
 
 <body>
   <div class="sidebar">
-    <form>
-      <div class="block col-contain">
-        <div class="col-one">
-          <select name="language">
-          </select>
-        </div>
+    <div class="block col-contain">
+      <div class="col-one">
+        <select name="language">
+        </select>
       </div>
-      <div class="block" id="button-bar">
-        <button class="blue" id="run-check">Run grammar check</button>
-      </div>
+    </div>
+    <div class="block" id="button-bar">
+      <button class="blue" id="open-preferences">Preferences</button>
+      <button class="blue" id="run-check">Run grammar check</button>
+    </div>
 
-      <div id="results">
-      </div>
-    </form>
+    <div id="results">
+    </div>
   </div>
 
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-  <?!= include("script") ?>
+  <?!= include("sidebar_script") ?>
 </body>
 
 </html>

@@ -1,6 +1,7 @@
 <script>
     $(function () {
         $('#run-check').click(runGrammarCheck);
+        $('#open-preferences').click(openPreferences);
         $('select[name="language"]').change(selectedLanguageChanged)
         refreshLanguagesList(function () {
             loadSettings();
@@ -46,6 +47,16 @@
             .withFailureHandler(onFailure)
             .withUserObject(select)
             .apiRequestLanguageOptions();
+    }
+
+    function openPreferences() {
+        google.script.run
+            .withFailureHandler(
+                function (msg, element) {
+                    showError(msg, $('#button-bar'));
+                })
+            .withUserObject(this)
+            .showPreferences();
     }
 
     function runGrammarCheck() {

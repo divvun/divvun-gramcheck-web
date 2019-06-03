@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <!-- The CSS package above applies Google styling to buttons and other elements. -->
+
+    <?!= include("style") ?>
+</head>
+
+<body>
+    <div class="block form-group">
+        <form>
+            <h2>Ignored error types</h2>
+            <p>Select the types of errors you want to not see when doing grammar checks</p>
+            <? for (var i = 0; i < errorTags.length; i++) { ?>
+            <input type="checkbox" <?!= errorTags[i].ignored ? "checked" : "" ?>
+                value="<?= errorTags[i].tag ?>">
+            <?= errorTags[i].name ?>
+            </input><br/>
+            <? } ?>
+        </form>
+    </div>
+
+    <div class="block">
+        <button class="blue" id="save">Save</button>
+        <button id="cancel">Cancel</button>
+    </div>
+
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <?!= include("preferences_script") ?>
+</body>
+
+</html>
