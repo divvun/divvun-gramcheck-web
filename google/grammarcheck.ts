@@ -193,6 +193,7 @@ function grammarCheckApiRequest(lang: string, text: string): GrammarCheckApiResp
         url: `${apiUrl}grammar/${lang}`,
         payload: {
             text: normalizeLineEndings(text),
+            ignore_tags: getIgnoredTags()
         }
     })
 }
