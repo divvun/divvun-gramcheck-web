@@ -1,0 +1,14 @@
+<script>
+    function showError(msg, element) {
+        var div = $('<div id="error" class="error">' + msg + '</div>');
+        $(element).after(div);
+    }
+
+    function disableAll(element) {
+        $(element).find("*").prop("disabled", true)
+    }
+
+    function enableAll(element) {
+        $(element).find("*").prop("disabled", false)
+    }
+</script>
