@@ -90,6 +90,7 @@
                     setLoading(false)
                     $('#results').html(grammarCheckResultsHtml);
                     $('.suggestion').click(runCorrection);
+                    $('.grammar-error').hover(highlightError, clearHighlight);
                 })
             .withFailureHandler(
                 function (msg, element) {
@@ -121,6 +122,18 @@
             })
             .withUserObject(this)
             .runCorrection(errorText, correction);
+    }
+
+    function highlightError() {
+        var errorText = $(this).attr('data-error-text');
+
+        google.script.run
+            .highlightError(errorText);
+    }
+
+    function clearHighlight() {
+        google.script.run
+            .clearHighlight();
     }
 
     function setLoading(loading) {

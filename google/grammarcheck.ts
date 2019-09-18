@@ -100,7 +100,7 @@ function runGrammarCheck(lang: string, text: string) {
     const resultsTemplate = HtmlService.createTemplateFromFile('results.html');
     resultsTemplate['errors'] = apiResult.errs.map((e) => {
         return {
-            contextText: highlightError(apiResult.text, e.error_text),
+            contextText: getHighlightError(apiResult.text, e.error_text),
             errorText: e.error_text,
             reason: e.description,
             startIndex: e.start_index,
@@ -118,7 +118,7 @@ function runGrammarCheck(lang: string, text: string) {
     return resultsHtml;
 }
 
-function highlightError(text: string, errorText: string): string {
+function getHighlightError(text: string, errorText: string): string {
     return clipContextText(text, errorText).replace(errorText, `<i>${errorText}</i>`);
 }
 
@@ -243,6 +243,27 @@ function runCorrection(errorText: string, correction: string) {
     } else {
         throw new Error('Could not find context of error. Maybe the text changed.')
     }
+}
+
+function highlightError(errorText: string) {
+    Logger.log('Highlighting: ' + errorText);
+    const doc = DocumentApp.getActiveDocument()
+    const body = doc.getBody();
+
+    const editingRange = body.findText(errorText);
+    if (editingRange) {
+        const range = doc.newRange();
+        range.addElement(editingRange.getElement().asText(), editingRange.getStartOffset(), editingRange.getEndOffsetInclusive())
+        doc.setSelection(range.build())
+    } else {
+        throw new Error('Could not find context of error. Maybe the text changed.')
+    }
+}
+
+function clearHighlight() {
+    const doc = DocumentApp.getActiveDocument()
+    const range = doc.newRange()
+    doc.setSelection(range.build())
 }
 
 function changeLanguage(key: string) {

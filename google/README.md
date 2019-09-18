@@ -23,3 +23,14 @@ Steps to build and deploy for your account on google:
 - npm run open
 
 The last step will open the App Script in Google's online editor where you can select from the menu `Run > Test as add-on...`. There you can set the script to be available for your Google user for testing purposes.
+
+# Publishing
+
+The add-on needs to be published in two places:
+1) GSuite Marketplace
+2) Chrome Web Store
+
+For 1) follow the instructions in https://developers.google.com/gsuite/add-ons/how-tos/publishing-editor-addons#publishing_instructions to add the "Marketplace SDK" to the project and configure the listing options there, and add the script id + version to use.
+
+For 2) a Chrome Web Store listing needs to be created in the Chrome Web Store Developer Dashboard at https://chrome.google.com/webstore/devconsole/. This can be done from the script editor by publishing the script as a docs addon. In order to publish the addon a signup fee needs to be paid in the developer dashboard.
+

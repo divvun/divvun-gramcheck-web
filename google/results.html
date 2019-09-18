@@ -1,6 +1,8 @@
 <div class="grammar-errors-list">
     <? for (var i = 0; i < errors.length; i++) { ?>
-    <div class="grammar-error">
+    <div class="grammar-error"
+      data-error-text="<?= errors[i].errorText ?>"
+    >
       <div class="reason"><?= errors[i].reason ?></div>
       <div classs="context"><?!= errors[i].contextText ?></div>
       <div class="suggestions-heading"><?= errors[i].suggestions.length > 0 ? 'Suggested corrections' : '' ?></div>
