@@ -15,5 +15,7 @@ A domain administrator then needs to enable the addon in the GSuite admin panel.
 4) Wait up to 24 hours
 5) The "Divvun Grammar Checker" option should appear in the Google Docs "Add-Ons" menu
 
+To install the addon for a private user (GMail), install the addon from the above link and the add-on should appear in Google Docs within 24h.
+
 ## Chrome Web Store
 To install the one for a GMail user, navigate to https://chrome.google.com/webstore/detail/divvun-grammar-checker/bbbegmecpfjmfngngnehclkfdfkbieen?authuser=0 and press "Install". The addon should appear in the addon list.
