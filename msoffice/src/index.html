@@ -11,7 +11,12 @@
     <title>Sami Grammar Checker</title>
 
     <!-- Office JavaScript API -->
+    <% if (webpackConfig.mode === 'production') { %>
+    <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <% } else { %>
     <script type="text/javascript" src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.debug.js"></script>
+    <% } %>
+
     <% if (webpackConfig.mode === 'production') { %>
     <script type="text/javascript" src="https://unpkg.com/react@^16/umd/react.production.min.js"></script>
     <script type="text/javascript" src="https://unpkg.com/react-dom@^16/umd/react-dom.production.min.js"></script>
