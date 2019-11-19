@@ -2,34 +2,38 @@
 <html>
 
 <head>
-  <base target="_top">
-  <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
-  <!-- The CSS package above applies Google styling to buttons and other elements. -->
+    <base target="_top">
+    <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
+    <!-- The CSS package above applies Google styling to buttons and other elements. -->
 
-  <?!= include("style") ?>
+    <?!= include("style") ?>
 </head>
 
 <body>
-  <div class="sidebar">
-    <div class="block col-contain">
-      <div class="block form-group">
-        <label for="language">Select language</label>
-        <select name="language">
+    <div class="sidebar branding-below">
+        <div class="block col-contain">
+            <div class="block form-group">
+                <label for="language">Select language</label>
+                <select name="language">
         </select>
-      </div>
-    </div>
-    <div class="block" id="button-bar">
-      <button class="blue" id="open-preferences">Preferences</button>
-      <button class="blue" id="run-check">Run grammar check</button>
+            </div>
+        </div>
+        <div class="block" id="button-bar">
+            <button class="blue" id="open-preferences">Preferences</button>
+            <button class="blue" id="run-check">Run grammar check</button>
+        </div>
+
+        <div class="block" id="results">
+        </div>
     </div>
 
-    <div id="results">
+    <div class="sidebar bottom">
+        <span class="gray"><a target="_blank" href="http://divvun.no/privacy.html">Privacy Policy</a></span>
     </div>
-  </div>
 
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-  <?!= include("sidebar_script") ?>
-  <?!= include("script") ?>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <?!= include("sidebar_script") ?>
+        <?!= include("script") ?>
 </body>
 
 </html>
