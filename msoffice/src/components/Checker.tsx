@@ -269,7 +269,7 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
 
         let snackbar = null;
         if (this.state.lastCorrectedError) {
-            snackbar = <Snackbar label='Correction implemented' onAction={this.undo} buttonLabel='Undo'/>;
+            snackbar = <Snackbar label='Correction implemented' onAction={this.undo} buttonLabel='Undo' />;
         }
 
         return <>
@@ -283,14 +283,15 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                     className='select-language'
                 />
                 <PrimaryButton
-                        onClick={this.runGrammarCheckOnWholeText}
-                        ariaDescription='Check grammar'
-                    >
+                    onClick={this.runGrammarCheckOnWholeText}
+                    ariaDescription='Check grammar'
+                >
                     Check
                 </PrimaryButton>
             </div>
             <div className='body'>
                 <ErrorBoundary key={this.state.requestsCounter}>
+                    {this.state.apiResultsByParagraph.length == 0 ? <p>Select a language in the language selector and click 'Check' to grammar check the text of your Document</p> : null}
                     <GrammarErrorsList
                         apiResults={this.state.apiResultsByParagraph}
                         onCorrect={this.correct}

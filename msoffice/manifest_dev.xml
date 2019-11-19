@@ -39,6 +39,14 @@
 
   <Permissions>ReadWriteDocument</Permissions>
 
+  <Requirements>
+    <Sets DefaultMinVersion="1.3">
+      <Set Name="WordApi" />
+    </Sets>
+    <Methods>
+    </Methods>
+  </Requirements>
+
   <!-- Begin Add-in Commands Mode integration. -->
   <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
 
