@@ -291,7 +291,10 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
             </div>
             <div className='body'>
                 <ErrorBoundary key={this.state.requestsCounter}>
-                    {this.state.apiResultsByParagraph.length == 0 ? <p>Select a language in the language selector and click 'Check' to grammar check the text of your Document</p> : null}
+                    {this.state.apiResultsByParagraph.length == 0 ? (<>
+                        <p>The Divvun Grammar Checker for Word adds support for grammar checking of a number of Sami languages developed by the Divvun Group of the University of Tromsø.</p>
+                        <p>Select a language in the language selector and click 'Check' to grammar check the text of your Document</p>
+                    </>) : null}
                     <GrammarErrorsList
                         apiResults={this.state.apiResultsByParagraph}
                         onCorrect={this.correct}
