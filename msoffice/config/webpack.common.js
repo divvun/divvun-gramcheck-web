@@ -30,11 +30,9 @@ const entry = {
     'function-file': '../function-file/function-file.ts'
 };
 
-const rules = [
-    {
+const rules = [{
         test: /\.worker\.ts$/,
-        use: [
-            {
+        use: [{
                 loader: 'workerize-loader',
                 options: {
                     inline: true,
@@ -141,13 +139,13 @@ module.exports = {
             template: '../function-file/function-file.html',
             chunks: ['function-file']
         }),
-        new CopyWebpackPlugin([
-            {
+        new CopyWebpackPlugin({
+            patterns: [{
                 from: '../assets',
-                ignore: ['*.scss'],
                 to: 'assets',
-            }
-        ]),
+                globOptions: { ignore: ['*.scss'] },
+            }]
+        }),
         new webpack.ProvidePlugin({
             Promise: 'bluebird',
         }),
