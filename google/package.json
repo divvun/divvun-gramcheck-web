@@ -1,31 +1,31 @@
 {
-  "name": "divvun-gramcheck-google-docs",
-  "version": "1.0.0",
-  "description": "Divvun grammar check for Sami languages add-on for Google Docs",
-  "scripts": {
-    "clasp": "clasp",
-    "push": "clasp push",
-    "open": "clasp open",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/divvun/divvun-gramcheck-web.git"
-  },
-  "keywords": [
-    "sami",
-    "gramcheck",
-    "grammar"
-  ],
-  "author": "Rostislav Raykov <z@zbrox.org>",
-  "license": "GPL-3.0",
-  "bugs": {
-    "url": "https://github.com/divvun/divvun-gramcheck-web/issues"
-  },
-  "homepage": "https://github.com/divvun/divvun-gramcheck-web#readme",
-  "devDependencies": {
-    "@google/clasp": "^1.6.3",
-    "@types/google-apps-script": "0.0.32",
-    "typescript": "2.9.2"
-  }
+    "name": "divvun-gramcheck-google-docs",
+    "version": "1.0.0",
+    "description": "Divvun grammar check for Sami languages add-on for Google Docs",
+    "scripts": {
+        "clasp": "clasp",
+        "push": "clasp push",
+        "open": "clasp open",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/divvun/divvun-gramcheck-web.git"
+    },
+    "keywords": [
+        "sami",
+        "gramcheck",
+        "grammar"
+    ],
+    "author": "Rostislav Raykov <z@zbrox.org>",
+    "license": "GPL-3.0",
+    "bugs": {
+        "url": "https://github.com/divvun/divvun-gramcheck-web/issues"
+    },
+    "homepage": "https://github.com/divvun/divvun-gramcheck-web#readme",
+    "devDependencies": {
+        "@google/clasp": "^2.3.0",
+        "@types/google-apps-script": "0.0.32",
+        "typescript": "2.9.2"
+    }
 }
