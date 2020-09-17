@@ -57,7 +57,16 @@ const rules = [{
     },
     {
         test: /\.less$/,
-        use: ['style-loader', 'css-loader', 'less-loader']
+        use: [
+            { loader: 'style-loader' },
+            {
+                loader: 'css-loader',
+                options: {
+                    modules: false
+                },
+            },
+            { loader: 'less-loader' }
+        ]
     },
     {
         test: /\.(png|jpe?g|gif|svg|woff|woff2|ttf|eot|ico)$/,
