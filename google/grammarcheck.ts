@@ -225,11 +225,14 @@ function apiRequestGrammarCheckerPreferences(): GrammarCheckerAvailablePreferenc
     });
 }
 
-function runCorrection(errorText: string, correction: string) {
+function runCorrection(errorText: string, correction: string, errorIndex: number) {
     Logger.log('Editing: ' + errorText + ', ' + correction);
     const body = DocumentApp.getActiveDocument().getBody();
 
-    const editingRange = body.findText(errorText);
+    let editingRange = body.findText(errorText);
+    while (editingRange && editingRange.getStartOffset() < errorIndex) {
+        editingRange = body.findText(errorText, editingRange);
+    }
     if (editingRange) {
         const startIndex = editingRange.getStartOffset();
         const endIndex = editingRange.getEndOffsetInclusive();
@@ -241,12 +244,15 @@ function runCorrection(errorText: string, correction: string) {
     }
 }
 
-function highlightError(errorText: string) {
-    Logger.log('Highlighting: ' + errorText);
+function highlightError(errorText: string, errorIndex: number) {
+    Logger.log('Highlighting: ' + errorText + ' at index ' + errorIndex);
     const doc = DocumentApp.getActiveDocument()
     const body = doc.getBody();
 
-    const editingRange = body.findText(errorText);
+    let editingRange = body.findText(errorText);
+    while (editingRange && editingRange.getStartOffset() < errorIndex) {
+        editingRange = body.findText(errorText, editingRange);
+    }
     if (editingRange) {
         const range = doc.newRange();
         range.addElement(editingRange.getElement().asText(), editingRange.getStartOffset(), editingRange.getEndOffsetInclusive())

@@ -1,7 +1,8 @@
 <div class="grammar-errors-list">
     <? for (var i = 0; i < errors.length; i++) { ?>
     <div class="grammar-error"
-      data-error-text="<?= errors[i].errorText ?>"
+    data-error-text="<?= errors[i].errorText ?>"
+    data-error-index="<?= errors[i].startIndex ?>"
     >
       <div class="reason"><?= errors[i].reason ?></div>
       <div classs="context"><?!= errors[i].contextText ?></div>
@@ -10,6 +11,7 @@
         <? for (var j = 0; j < errors[i].suggestions.length; j++) { ?>
           <div class="suggestion" 
             data-error-text="<?= errors[i].errorText ?>"
+            data-error-index="<?= errors[i].startIndex ?>"
             data-correction="<?= errors[i].suggestions[j] ?>"
           >
             <?= errors[i].suggestions[j] ?>
