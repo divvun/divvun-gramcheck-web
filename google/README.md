@@ -28,6 +28,17 @@ Steps to build and deploy for your account on google:
 
 The last step will open the App Script in Google's online editor. You used to be able to select from the menu `Run > Test as add-on...`, but that doesn't seem to be a thing anymore.
 
+# Testing
+
+Here. Have a sentence in davvisámegiella. There's two paragraphs on purpose. You want to make sure consecutive paragraphs are highlighted and fixed even though the errors are exactly the same. The sentence contains a quoted bit of Norwegian that triggers the grammar checker. 
+
+```
+Su váldofágadutkamuš lei sosiálapedagogihkas, fáddán ”Samisk barneoppdragelse og kjønnssosialisering”, Oslo 1986.
+
+Su váldofágadutkamuš lei sosiálapedagogihkas, fáddán ”Samisk barneoppdragelse og kjønnssosialisering”, Oslo 1986.
+
+```
+
 # Publishing
 
 The add-on needs to be published in two places:
