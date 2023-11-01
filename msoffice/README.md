@@ -4,7 +4,7 @@ The grammar checker is an add-on to MS Office Online and more specifically Word.
 
 # Requirements
 
-- Node.js (> 9.0)
+- Node.js (> 10.0)
 - npm
 
 You will also need to add the self-signed certificate to your chain of trust. If you're using Chrome/Safari for Windows or macOS you can follow the instructions here: https://github.com/OfficeDev/generator-office/blob/master/src/docs/ssl.md
@@ -17,6 +17,15 @@ Steps to run this in a development environment:
 
 1. npm install
 2. npm start
+
+When this inevitably fails, may we suggest accepting our lord and saviour docker into your hearts and going
+
+```bash
+docker run --platform linux/amd64 --rm -ti -p 3000:3000 -v $(pwd):/app node:10 bash
+# cd /app
+# npm install
+# npm start
+```
 
 This will have you running a local server at port 3000. Then depending on which Word you want to test,
 you need to provide the `manifest.xml` file to Word in a different way.

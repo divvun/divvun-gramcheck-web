@@ -10,7 +10,7 @@
     "scripts": {
         "clean": "rimraf dist && rimraf .awcache",
         "lint": "tslint --project tsconfig.json",
-        "start": "webpack-dev-server --inline --config config/webpack.dev.js --progress",
+        "start": "webpack-dev-server --host 0.0.0.0 --inline --config config/webpack.dev.js --progress",
         "sideload": "office-toolbox sideload -m manifest.xml -a Word",
         "build": "npm run clean && webpack --config config/webpack.prod.js --colors --progress --bail",
         "validate": "office-toolbox validate -m manifest.xml"
