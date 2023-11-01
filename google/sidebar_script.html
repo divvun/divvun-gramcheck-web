@@ -104,6 +104,7 @@
     function runCorrection() {
         var errorText = $(this).attr('data-error-text');
         var errorIndex = $(this).attr('data-error-index');
+        var errorParagraphIndex = $(this).attr('data-error-paragraph-index');
         var correction = $(this).attr('data-correction');
         var parentIndex = $(this).attr('data-parent-index');
         var parent = $(this).closest('.grammar-error');
@@ -122,15 +123,16 @@
                 setLoading(false)
             })
             .withUserObject(this)
-            .runCorrection(errorText, correction, errorIndex);
+            .runCorrection(errorText, correction, errorIndex, errorParagraphIndex);
     }
 
     function highlightError() {
         var errorText = $(this).attr('data-error-text');
         var errorIndex = $(this).attr('data-error-index');
+        var errorParagraphIndex = $(this).attr('data-error-paragraph-index');
 
         google.script.run
-            .highlightError(errorText, errorIndex);
+            .highlightError(errorText, errorIndex, errorParagraphIndex);
     }
 
     function clearHighlight() {

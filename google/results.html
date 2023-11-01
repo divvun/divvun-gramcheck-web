@@ -3,6 +3,7 @@
     <div class="grammar-error"
     data-error-text="<?= errors[i].errorText ?>"
     data-error-index="<?= errors[i].startIndex ?>"
+    data-error-paragraph-index="<?= paragraphIndex ?>"
     >
       <div class="reason"><?= errors[i].reason ?></div>
       <div classs="context"><?!= errors[i].contextText ?></div>
@@ -13,6 +14,7 @@
             data-error-text="<?= errors[i].errorText ?>"
             data-error-index="<?= errors[i].startIndex ?>"
             data-correction="<?= errors[i].suggestions[j] ?>"
+            data-error-paragraph-index="<?= paragraphIndex ?>"
           >
             <?= errors[i].suggestions[j] ?>
           </div>

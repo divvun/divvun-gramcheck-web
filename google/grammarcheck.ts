@@ -56,11 +56,6 @@ function showPreferences() {
     DocumentApp.getUi().showModalDialog(ui, "Preferences");
 };
 
-function splitInParagraphs(text: string): string[] {
-    const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-    return normalizedText.split('\n');
-}
-
 function normalizeLineEndings(text: string): string {
     return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
@@ -81,23 +76,23 @@ interface GrammarCheckResult {
 }
 
 function runGrammarCheckOnWholeText(lang: string) {
-    const text = DocumentApp.getActiveDocument().getBody().getText();
-
-    const paragraphs = splitInParagraphs(text);
+    const paragraphs = DocumentApp.getActiveDocument().getBody().getParagraphs();
 
     let html = '';
 
+    let paragraphIndex = 0;
     for (const paragraph of paragraphs) {
-        html += runGrammarCheck(lang, paragraph);
+        html += runGrammarCheck(lang, paragraph.getText(), paragraphIndex++);
     }
 
     return html;
 }
 
-function runGrammarCheck(lang: string, text: string) {
-    const apiResult = grammarCheckApiRequest(lang, text);
+function runGrammarCheck(lang: string, paragraph: string, paragraphIndex: number) {
+    const apiResult = grammarCheckApiRequest(lang, paragraph);
 
     const resultsTemplate = HtmlService.createTemplateFromFile('results.html');
+    resultsTemplate['paragraphIndex'] = paragraphIndex;
     resultsTemplate['errors'] = apiResult.errs.map((e) => {
         return {
             contextText: getHighlightError(apiResult.text, e.error_text, e.start_index),
@@ -118,8 +113,8 @@ function runGrammarCheck(lang: string, text: string) {
     return resultsHtml;
 }
 
-function getHighlightError(text: string, errorText: string, startIndex:number): string {
-    return clipContextText(text, errorText, startIndex).replace(errorText, `<i>${errorText}</i>`);
+function getHighlightError(paragraph: string, errorText: string, startIndex:number): string {
+    return clipContextText(paragraph, errorText, startIndex).replace(errorText, `<i>${errorText}</i>`);
 }
 
 function clipContextText(paragraph: string, errorText: string, startIndex: number): string {
@@ -225,13 +220,15 @@ function apiRequestGrammarCheckerPreferences(): GrammarCheckerAvailablePreferenc
     });
 }
 
-function runCorrection(errorText: string, correction: string, errorIndex: number) {
+function runCorrection(errorText: string, correction: string, errorIndex: number, paragraphIndex: number) {
     Logger.log('Editing: ' + errorText + ', ' + correction);
     const body = DocumentApp.getActiveDocument().getBody();
+    const paras = body.getParagraphs();
+    const paragraph = paras[paragraphIndex];
 
-    let editingRange = body.findText(errorText);
+    let editingRange = paragraph.findText(errorText);
     while (editingRange && editingRange.getStartOffset() < errorIndex) {
-        editingRange = body.findText(errorText, editingRange);
+        editingRange = paragraph.findText(errorText, editingRange);
     }
     if (editingRange) {
         const startIndex = editingRange.getStartOffset();
@@ -244,14 +241,16 @@ function runCorrection(errorText: string, correction: string, errorIndex: number
     }
 }
 
-function highlightError(errorText: string, errorIndex: number) {
-    Logger.log('Highlighting: ' + errorText + ' at index ' + errorIndex);
+function highlightError(errorText: string, errorIndex: number, paragraphIndex: number) {
+    Logger.log('Highlighting: ' + errorText + ' at index ' + errorIndex + ' in paragraph ' + paragraphIndex);
     const doc = DocumentApp.getActiveDocument()
     const body = doc.getBody();
+    const paras = body.getParagraphs();
+    const paragraph = paras[paragraphIndex];
 
-    let editingRange = body.findText(errorText);
+    let editingRange = paragraph.findText(errorText);
     while (editingRange && editingRange.getStartOffset() < errorIndex) {
-        editingRange = body.findText(errorText, editingRange);
+        editingRange = paragraph.findText(errorText, editingRange);
     }
     if (editingRange) {
         const range = doc.newRange();
