@@ -100,7 +100,7 @@ function runGrammarCheck(lang: string, text: string) {
     const resultsTemplate = HtmlService.createTemplateFromFile('results.html');
     resultsTemplate['errors'] = apiResult.errs.map((e) => {
         return {
-            contextText: getHighlightError(apiResult.text, e.error_text),
+            contextText: getHighlightError(apiResult.text, e.error_text, e.start_index),
             errorText: e.error_text,
             reason: e.description,
             startIndex: e.start_index,
@@ -118,35 +118,31 @@ function runGrammarCheck(lang: string, text: string) {
     return resultsHtml;
 }
 
-function getHighlightError(text: string, errorText: string): string {
-    return clipContextText(text, errorText).replace(errorText, `<i>${errorText}</i>`);
+function getHighlightError(text: string, errorText: string, startIndex:number): string {
+    return clipContextText(text, errorText, startIndex).replace(errorText, `<i>${errorText}</i>`);
 }
 
-function clipContextText(text: string, errorText: string): string {
-    const sentences = text.split('.');
-
-    for (let sentence of sentences) {
-        if (errorText.indexOf('.') === 0) {
-            sentence = '.' + sentence;
+function clipContextText(paragraph: string, errorText: string, startIndex: number): string {
+    if (errorText.indexOf('.') === 0) {
+        paragraph = '.' + paragraph;
+    }
+    if (errorText.lastIndexOf('.') > -1) {
+        paragraph += '.';
+    }
+    const errorTextPos = paragraph.indexOf(errorText, startIndex);
+    if (errorTextPos > -1) {
+        let cutStartIndex = paragraph.substr(0, errorTextPos - 1).lastIndexOf(' ');
+        if (cutStartIndex < 0) {
+            cutStartIndex = 0;
         }
-        if (errorText.lastIndexOf('.') > -1) {
-            sentence += '.';
+        let cutEndIndex = paragraph.indexOf(' ', errorTextPos + errorText.length + 1);
+        if (cutEndIndex < 0) {
+            cutEndIndex = paragraph.length;
         }
-        const errorTextPos = sentence.indexOf(errorText);
-        if (errorTextPos > -1) {
-            let cutStartIndex = sentence.substr(0, errorTextPos - 1).lastIndexOf(' ');
-            if (cutStartIndex < 0) {
-                cutStartIndex = 0;
-            }
-            let cutEndIndex = sentence.indexOf(' ', errorTextPos + errorText.length + 1);
-            if (cutEndIndex < 0) {
-                cutEndIndex = sentence.length;
-            }
-            return sentence.substr(cutStartIndex, cutEndIndex - cutStartIndex);
-        }
+        return paragraph.substr(cutStartIndex, cutEndIndex - cutStartIndex);
     }
 
-    return text;
+    return paragraph;
 }
 
 interface ApiRequestOptions {
