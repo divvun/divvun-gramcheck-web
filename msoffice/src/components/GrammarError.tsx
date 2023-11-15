@@ -10,6 +10,7 @@ export interface GrammarErrorProps {
     description: string;
     lineIndex: number;
     errorIndex: number;
+    errorOffset: number;
     suggestions: string[];
     onCorrect(lineIndex: number, errorIndex: number, suggestionIndex: number): void;
     onHighlight(lineIndex: number, errorIndex: number, clear: boolean): void;
@@ -35,7 +36,7 @@ export default class GrammarError extends React.Component<GrammarErrorProps, Gra
     extractContextWorker = undefined;
 
     componentDidMount() {
-        this.extractContextWorker.extractContext(this.props.contextText, this.props.errorText).then((result) => {
+        this.extractContextWorker.extractContext(this.props.contextText, this.props.errorText, this.props.errorOffset).then((result) => {
             if (this.state.contextText !== result) {
                 this.setState({
                     contextText: result,

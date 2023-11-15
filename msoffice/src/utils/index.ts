@@ -5,7 +5,7 @@ export const IGNORED_ERROR_TAGS_KEY = 'ignoredErrorTags';
 export const SELECTED_LANGUAGE_KEY = 'selectedLanguage';
 export const IGNORED_ERRORS_KEY = 'ignoredIndividualErrors';
 
-export function clipToErrorContext(text: string, errorText: string): string {
+export function clipToErrorContext(text: string, errorText: string, errorOffset: number): string {
     const sentences = text.split('.');
 
     for (let sentence of sentences) {
@@ -15,7 +15,7 @@ export function clipToErrorContext(text: string, errorText: string): string {
         if (errorText.lastIndexOf('.') > -1) {
             sentence += '.';
         }
-        const errorTextPos = sentence.indexOf(errorText);
+        const errorTextPos = sentence.indexOf(errorText, errorOffset);
         if (errorTextPos > -1) {
             let cutStartIndex = sentence.substr(0, errorTextPos - 1).lastIndexOf(' ');
             if (cutStartIndex < 0) {

@@ -30,6 +30,7 @@ export default class GrammarErrorsList extends React.Component<GrammarErrorsList
                         description={e.description}
                         lineIndex={lineIndex}
                         errorIndex={errorIndex}
+                        errorOffset={e.start_index}
                         suggestions={e.suggestions}
                         onCorrect={this.props.onCorrect}
                         onHighlight={this.props.onHighlight}
