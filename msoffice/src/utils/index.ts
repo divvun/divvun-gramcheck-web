@@ -41,23 +41,24 @@ export function normalizeLineEndings(text: string): string {
     return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
 
-export async function getRange(context: Word.RequestContext, paragraph: string, errorText: string): Promise<Word.Range> {
-    const body = context.document.body;
-    context.load(body);
+export async function getRange(context: Word.RequestContext, paragraphIndex: number, errorText: string, errorOffset: number): Promise<Word.Range> {
+    const paragraphs = context.document.body.paragraphs;
+    paragraphs.load("text");
     await context.sync();
-
+  
     // NOTE: This had to be done because regex splitting is
     // not working ok with some browsers
     // And the reason it should be done like this is the desktop
     // version of Word which unlike the online one
     // cannot search for more than 255 chars at a time
-    const chunks = splitStringToChunks(paragraph, 255);
+    const paragraph = paragraphs.items[paragraphIndex];
+    const chunks = splitStringToChunks(paragraph.text, 255, errorOffset);
 
     let fullRange: Word.Range | null = null;
     for (let index = 0; index < chunks.length; index++) {
         const chunk = chunks[index];
 
-        const paragraphRangeCollection = body.search(chunk, {
+        const paragraphRangeCollection = paragraph.search(chunk, {
             matchCase: true,
         });
 
@@ -100,12 +101,12 @@ function isInvalidSearchCharacter(char: string): boolean {
     return (code >= 0 && code <= 0x1F) || code === 0x7f || (code >= 0x80 && code <= 0x9F);
 }
 
-function splitStringToChunks(string: string, chunkLength: number): string[] {
+function splitStringToChunks(string: string, chunkLength: number, errorOffset: number): string[] {
     const chunks: string[] = [];
 
     let tempString: string = '';
     let counter: number = 1;
-    for (const char of string) {
+    for (const char of string.substring(errorOffset)) {
         const invalidChar = isInvalidSearchCharacter(char);
         if (counter > chunkLength || (counter > 0 && invalidChar)) {
             chunks.push(tempString);

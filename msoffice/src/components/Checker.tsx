@@ -18,6 +18,7 @@ interface CheckerState {
         selectedSuggestion: string;
         paragraphIndex: number;
         errorIndex: number;
+        errorOffset: number;
     } | null;
     loading: boolean;
     requestsCounter: number;
@@ -75,6 +76,10 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
 
     getGrammarErrorText = (lineIndex: number, errorIndex: number): string => {
         return this.state.apiResultsByParagraph[lineIndex].errs[errorIndex].error_text;
+    }
+
+    getGrammarErrorOffset = (lineIndex: number, errorIndex: number): number => {
+        return this.state.apiResultsByParagraph[lineIndex].errs[errorIndex].start_index;
     }
 
     getSuggestion = (lineIndex: number, errorIndex: number, suggestionIndex: number): string => {
@@ -169,8 +174,8 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
         Word.run(async (context) => {
             try {
                 const errorText = this.getGrammarErrorText(lineIndex, errorIndex);
-                const paragraphText = this.getLineText(lineIndex);
-                const errorRange = await getRange(context, paragraphText, errorText);
+                const errorOffset = this.getGrammarErrorOffset(lineIndex, errorIndex);
+                const errorRange = await getRange(context, lineIndex, errorText, errorOffset);
 
                 errorRange.select(clear ? 'Start' : 'Select');
                 await context.sync();
@@ -184,8 +189,8 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
         Word.run(async (context) => {
             try {
                 const errorText = this.getGrammarErrorText(paragraphIndex, errorIndex);
-                const paragraphText = this.getLineText(paragraphIndex);
-                const errorRange = await getRange(context, paragraphText, errorText);
+                const errorOffset = this.getGrammarErrorOffset(paragraphIndex, errorIndex);
+                const errorRange = await getRange(context, paragraphIndex, errorText, errorOffset);
 
                 const suggestion = this.getSuggestion(paragraphIndex, errorIndex, suggestionIndex);
 
@@ -197,6 +202,7 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                     selectedSuggestion: suggestion,
                     paragraphIndex,
                     errorIndex,
+                    errorOffset,
                 };
 
                 this.setState({
@@ -234,10 +240,10 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
         Word.run(async (context) => {
             try {
                 const correctedError = this.state.lastCorrectedError;
-
+                
                 const errorText = correctedError.selectedSuggestion;
-                const paragraphText = this.getLineText(correctedError.paragraphIndex);
-                const errorRange = await getRange(context, paragraphText, errorText);
+                const errorOffset = correctedError.errorOffset;
+                const errorRange = await getRange(context, correctedError.paragraphIndex, errorText, errorOffset);
 
                 errorRange.insertText(correctedError.error.error_text, 'Replace');
                 errorRange.select('End');
