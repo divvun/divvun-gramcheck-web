@@ -43,7 +43,7 @@ export default class GrammarErrorsList extends React.Component<GrammarErrorsList
 
         return (
             <div className='grammar-errors-list'>
-                {results}
+                {results.length > 0 ? results : "No grammar errors found. To review your ignored error types, click the \"Settings\" tab at the bottom of this pane."}
             </div>
         );
     }

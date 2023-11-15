@@ -106,8 +106,8 @@ function runGrammarCheck(lang: string, paragraph: string, paragraphIndex: number
 
     let resultsHtml = resultsTemplate.evaluate().getContent();
 
-    if (!resultsHtml) {
-        return 'No grammar mistakes found';
+    if (resultsTemplate['errors'].length == 0) {
+        return 'No grammar errors found. To review your ignored error types, click the \"Preferences\" button above.';
     }
 
     return resultsHtml;
