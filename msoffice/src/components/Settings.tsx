@@ -72,7 +72,7 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
         let currentSettings = this.state.selectedIgnoredErrorTags;
 
         currentSettings = currentSettings.filter((k) => ungrouppedKeys.indexOf(k) < 0);
-        if (checked) {
+        if (!checked) {
             currentSettings = currentSettings.concat(ungrouppedKeys);
         }
 
@@ -95,7 +95,7 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
             }
         }
 
-        return result;
+        return !result;
     }
 
     render() {
@@ -110,7 +110,7 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
                     label={tagLocalizedName}
                     ariaLabel={tagLocalizedName}
                     checked={this.isSelected(tagName)}
-                    className='ignored-tag-checkbox'
+                    className='grammar-tag-checkbox'
                     onChange={(_, checked) => { this.onChangeIgnoredErrorTags(tagName, checked); }}
                 />
             );
@@ -118,8 +118,8 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
 
         return (
             <div className='settings-pane body'>
-                <h2>Ignored error types</h2>
-                <p>Select the types of errors you want to not see when doing grammar checks</p>
+                <h2>Error types</h2>
+                <p>Select the types of errors the grammar checker should warn you about.</p>
                 {ignoredErrorTagsCheckboxes}
             </div>
         );

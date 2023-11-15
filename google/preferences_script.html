@@ -8,7 +8,7 @@
         setLoading(true)
 
         var ignoredTags = []
-        $.each($("input[name='ignoredTag']:checked"), function() {
+        $.each($("input[name='ignoredTag']:not(:checked)"), function() {
             var tags = $(this).val().split(",")
             ignoredTags = ignoredTags.concat(tags)
         })
