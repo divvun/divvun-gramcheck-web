@@ -84,7 +84,9 @@ function runGrammarCheckOnWholeText(lang: string) {
     for (const paragraph of paragraphs) {
         html += runGrammarCheck(lang, paragraph.getText(), paragraphIndex++);
     }
-
+    if (html.length < 1) { // No errors
+        return 'No grammar errors found. To review your ignored error types, click the \"Preferences\" button above.';
+    }
     return html;
 }
 
@@ -107,7 +109,7 @@ function runGrammarCheck(lang: string, paragraph: string, paragraphIndex: number
     let resultsHtml = resultsTemplate.evaluate().getContent();
 
     if (resultsTemplate['errors'].length == 0) {
-        return 'No grammar errors found. To review your ignored error types, click the \"Preferences\" button above.';
+        return '';
     }
 
     return resultsHtml;
