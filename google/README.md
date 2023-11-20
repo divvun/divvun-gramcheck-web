@@ -42,20 +42,21 @@ Created new Google Docs Add-on script: https://script.google.com/d/1IbhhyGrrMgQu
 
 This project was setup using divvunuit@gmail.com. If you've done it right you should be able to see this doc https://script.google.com/home/projects/1LIO6pqCziYtTTzVFRQzA1SSCCie_5XTcnZxTHCyVvqyAugYSQiLLNQqb/edit
 
-First you want to create a new version. Do that according to https://developers.google.com/apps-script/guides/versions#creating_a_version
-
-Make sure your .clasp.json file has the same id as the script you just created. 
+Make sure your .clasp.json file has the same id as the script on the site:
 ```bash
 cat .clasp.json
 {"scriptId":"1LIO6pqCziYtTTzVFRQzA1SSCCie_5XTcnZxTHCyVvqyAugYSQiLLNQqb"}
 ```
 
-The key is gonna be:
+You can `npm run push` and test until you're good and happy. Once you're happy, you create a new version. Do that according to https://developers.google.com/apps-script/guides/versions#creating_a_version
+
+When you've created the new version, change the script version on https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleapps_sdk?project=divvun-gapps-grammar-checker&pli=1
+
+If it's 3 and you created version 4.. you.. update the 3 to a 4. It deploys within minute
+
+
+The Docs Add-on key is gonna be:
 MFVPDoxRYmAr2LDY-YoElkmOyc8oyZy1Z
-
-When you create the new version, change the script version on https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleapps_sdk?project=divvun-gapps-grammar-checker&pli=1
-
-If it's 3 and you created version 4.. you.. update the 3 to a 4. 
 
 
 The add-on needs to be published in two places:
