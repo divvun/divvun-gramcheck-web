@@ -41,3 +41,51 @@ https://docs.microsoft.com/en-us/office/dev/add-ins/testing/sideload-an-office-a
 
 If you want to debug on the iPad or Mac, follow these instructions to get access to some debug tools and the console:
 https://docs.microsoft.com/en-us/office/dev/add-ins/testing/debug-office-add-ins-on-ipad-and-mac
+
+
+# Publishing
+
+The [Divviun Grammar Checker](https://appsource.microsoft.com/en-us/product/office/WA200001000?tab=Overview) is published at [Microsoft Partner Center](https://partner.microsoft.com/nb-no/dashboard/office/products/c280f9cf-93a4-4916-b322-f6d3c13d955a/setup). You'll need to login with divvunuit@gmail.com
+
+There's a checklist of stuff to do before publishing - it lives [here](https://learn.microsoft.com/en-us/partner-center/marketplace/checklist). Saying that as a reference only. Technically there shouldn't be much more stuff in here.
+
+Unlike google docs, the microsoft add-in:s are hosted by us. So. We provide microsoft with a manifest that points to the URL we'd like the server to load. The URL lives on our webserver - https://api-giellalt.uit.no/msoffice/index.html
+
+So unless we need to make changes to any of the URLs, we can ignore updating the manifest and just update the hosting files on api-giellalt.uit.no . This is shoe-horned in on the divvun-api server. 
+
+So.. 
+
+```bash
+docker run --platform linux/amd64 --rm -ti -p 3000:3000 -v $(pwd):/app node:10 bash
+cd app
+npm i
+npm run build
+exit
+```
+
+Now you have a dist folder filled with happy dist files. This is your Add-in (previously Add-on). You can follow the instruction here https://github.com/divvun/divvun-api/blob/1bb26c4b8e40a3665c189800027b4c3a7afd7e5f/deployment/README.md to generate a full deployment set that deploys not only this content, but also all the other divvun components. 
+
+You can also just replace the contents of the dist-folder with your new add-in. Either way, you'll need your public key added to the set of known keys on api-giellalt.uit.no first. 
+
+```bash
+cd dist
+tar czvf dist.tar.gz *
+cd ..
+mv dist/dist.tar.gz .
+scp dist.tar.gz root@api-giellalt.uit.no:/tmp/dist.tar.gz
+ssh root@api-giellalt.uit.no
+cd /home/api/dist
+rm -rf msoffice.new
+mkdir msoffice.new
+cd msoffice.new
+tar xvf /tmp/dist.tar.gz
+cd ..
+mv msoffice msoffice$(date +"%Y%m%d%H%M%S")
+mv msoffice.new msoffice
+exit
+rm dist.tar.gz
+echo "Done"
+```
+
+Remember to run your tests with the cache disabled. When in word, hover the grammar checker until the "i" appears and then clear the web cache and reload
+![How to relaod in word](reload_word.png)

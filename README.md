@@ -9,7 +9,7 @@ You can find the respective codebases in the subfolders.
 (require admin user name etc):
 
 - [Google](https://console.cloud.google.com/apis/dashboard?project=divvun-gapps-grammar-checker)
-- [MS Office]()
+- [MS Office](https://partner.microsoft.com/nb-no/dashboard/office/products/c280f9cf-93a4-4916-b322-f6d3c13d955a/overview)
 
 
 # Testing
