@@ -87,6 +87,6 @@ rm dist.tar.gz
 echo "Done"
 ```
 
-Remember to run your tests with the cache disabled. When in word, hover the grammar checker until the "i" appears, click it and then clear the web cache and reload in the menu that appears:
+Remember to run your tests with the cache disabled. When in word, hover the grammar checker until the "i" appears (1), click it and then clear the web cache (2) and reload (3) in the menu that appears:
 
 ![How to relaod in word](reload_word.png)
