@@ -27,6 +27,7 @@ export function clipToErrorContext(text: string, errorText: string, errorOffset:
             }
             return sentence.substr(cutStartIndex, cutEndIndex - cutStartIndex);
         }
+        errorOffset = errorOffset - sentence.length; // One sentece at a time, so the offset is reduced by the length of the sentence
     }
 
     return text;
