@@ -5,33 +5,24 @@ export const IGNORED_ERROR_TAGS_KEY = 'ignoredErrorTags';
 export const SELECTED_LANGUAGE_KEY = 'selectedLanguage';
 export const IGNORED_ERRORS_KEY = 'ignoredIndividualErrors';
 
-export function clipToErrorContext(text: string, errorText: string, errorOffset: number): string {
-    const sentences = text.split('.');
-
-    for (let sentence of sentences) {
-        if (errorText.indexOf('.') === 0) {
-            sentence = '.' + sentence;
+export function clipToErrorContext(parargaph: string, errorText: string, errorOffset: number): string {
+    const errorTextPos = parargaph.indexOf(errorText, errorOffset);
+  
+    if (errorTextPos > -1) {
+        let cutStartIndex = parargaph.substr(0, errorTextPos - 1).lastIndexOf(' ');
+        if (cutStartIndex < 0) {
+            cutStartIndex = 0;
         }
-        if (errorText.lastIndexOf('.') > -1) {
-            sentence += '.';
+        let cutEndIndex = parargaph.indexOf(' ', errorTextPos + errorText.length + 1);
+        if (cutEndIndex < 0) {
+            cutEndIndex = parargaph.length;
         }
-        const errorTextPos = sentence.indexOf(errorText, errorOffset);
-        if (errorTextPos > -1) {
-            let cutStartIndex = sentence.substr(0, errorTextPos - 1).lastIndexOf(' ');
-            if (cutStartIndex < 0) {
-                cutStartIndex = 0;
-            }
-            let cutEndIndex = sentence.indexOf(' ', errorTextPos + errorText.length + 1);
-            if (cutEndIndex < 0) {
-                cutEndIndex = sentence.length;
-            }
-            return sentence.substr(cutStartIndex, cutEndIndex - cutStartIndex);
-        }
-        errorOffset = errorOffset - sentence.length; // One sentece at a time, so the offset is reduced by the length of the sentence
+        return parargaph.substr(cutStartIndex, cutEndIndex - cutStartIndex);
     }
+    return parargaph;
+  }
+   
 
-    return text;
-}
 
 export function splitInParagraphs(text: string): string[] {
     const normalizedText = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
