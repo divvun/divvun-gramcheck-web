@@ -143,8 +143,10 @@
     function setLoading(loading) {
         var sidebar = $(".sidebar")
         if (loading) {
+            showLoading()
             disableAll(sidebar)
         } else {
+            hideLoading()
             enableAll(sidebar)
         }
     }

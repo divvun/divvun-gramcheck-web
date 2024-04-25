@@ -2,42 +2,42 @@
     #results {
         margin-top: 20px;
     }
-    
+
     .grammar-error {
         padding: 5px 7px;
         border: 1px solid #E0E6E8;
         margin-bottom: 10px;
         position: relative;
     }
-    
+
     .reason {
         font-weight: bold;
     }
-    
+
     .context {
         color: #7388A1;
     }
-    
+
     i,
     .grammar-error-text {
         color: #FD2572;
         font-weight: bold;
         text-decoration: underline;
     }
-    
+
     .suggestions-list {
         margin-bottom: 5px;
         display: flex;
         flex-direction: row;
         flex-wrap: wrap;
     }
-    
+
     .suggestions-heading {
         margin-top: 10px;
         margin-bottom: 5px;
         font-weight: bold;
     }
-    
+
     .suggestion {
         font-weight: bold;
         background-color: #55E87F;
@@ -49,13 +49,48 @@
         align-items: center;
         text-align: center;
     }
-    
+
     label {
         font-weight: bold;
     }
-    
+
     .branding-below {
         bottom: 56px;
         top: 0;
+    }
+
+
+
+
+    #loadingAnimation {
+        display: none;
+    }
+    .lds-dual-ring,
+    .lds-dual-ring:after {
+        box-sizing: border-box;
+    }
+    .lds-dual-ring {
+        display: inline-block;
+        width: 80px;
+        height: 80px;
+    }
+    .lds-dual-ring:after {
+        content: " ";
+        display: block;
+        width: 64px;
+        height: 64px;
+        margin: 8px;
+        border-radius: 50%;
+        border: 6.4px solid currentColor;
+        border-color: currentColor transparent currentColor transparent;
+        animation: lds-dual-ring 1.2s linear infinite;
+    }
+    @keyframes lds-dual-ring {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
     }
 </style>
