@@ -129,6 +129,7 @@ tar xvf /tmp/dist.tar.gz
 cd ..
 mv msoffice msoffice$(date +"%Y%m%d%H%M%S")
 mv msoffice.new msoffice
+sudo systemctl restart divvun-api # restart the api for changes to take effect
 exit
 rm dist.tar.gz
 echo "Done"
