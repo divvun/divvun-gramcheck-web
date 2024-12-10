@@ -30,6 +30,53 @@ docker run --platform linux/amd64 --rm -ti -p 3000:3000 -v $(pwd):/app node:10 b
 This will have you running a local server at port 3000. Then depending on which Word you want to test,
 you need to provide the `manifest.xml` file to Word in a different way.
 
+### Certificates
+
+It's probable that the included certificates won't work for your local dev environment. If, after adding the cert to Firefox, you still get a security threat warning, or if you notice that double-clicking the `ca.crt` to add it to your keychain does absolutely nothing, it's time to generate your own:
+
+```bash
+# make new dir for your new certs
+mkdir certs2
+cd certs2
+
+# generate a CA private key
+openssl genrsa -out ca.key 2048
+
+# create the CA cert
+openssl req -x509 -new -nodes -key ca.key -sha256 -days 1024 -out ca.crt \
+    -subj "/C=US/ST=State/L=City/O=YourOrganization/OU=Dev/CN=Localhost-CA"
+
+# generate server private key
+openssl genrsa -out server.key 2048
+
+# create cert signing request (CSR)
+openssl req -new -key server.key -out server.csr \
+    -subj "/C=US/ST=State/L=City/O=YourOrganization/OU=Dev/CN=localhost"
+
+# create SAN config file
+vim server.ext
+
+# and copy the below into that file:
+# begin server.ext
+authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+extendedKeyUsage = serverAuth
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = localhost
+# end of server.ext
+
+# sign the server certificate with the CA
+openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
+    -out server.crt -days 500 -sha256 -extfile server.ext
+```
+
+Now, update `config/webpack.dev.js` to point to the new certs you just created in `certs2/`.
+
+Make sure you do the step to trust the `ca.crt` you just created, as outlined above.
+
 ## Online
 
 You need to upload the manifest file in order to test the add-in. Follow the instructions on https://docs.microsoft.com/en-us/office/dev/add-ins/testing/sideload-office-add-ins-for-testing#sideload-an-office-add-in-in-office-online
