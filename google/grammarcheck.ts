@@ -265,8 +265,14 @@ function highlightError(errorText: string, errorIndex: number, paragraphIndex: n
 
 function clearHighlight() {
     const doc = DocumentApp.getActiveDocument()
-    const range = doc.newRange()
-    doc.setSelection(range.build())
+    const selection = doc.getSelection();
+    if (selection) {
+        for (let element of selection.getRangeElements()) {
+            const pos = doc.newPosition(element.getElement(), element.getEndOffsetInclusive() + 1);
+            doc.setCursor(pos);
+            return;
+        }
+    }
 }
 
 function changeLanguage(key: string) {
