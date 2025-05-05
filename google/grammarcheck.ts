@@ -268,7 +268,7 @@ function clearHighlight() {
     const selection = doc.getSelection();
     if (selection) {
         for (let element of selection.getRangeElements()) {
-            const pos = doc.newPosition(element.getElement(), element.getStartOffset());
+            const pos = doc.newPosition(element.getElement(), element.getEndOffsetInclusive() + 1);
             doc.setCursor(pos);
             return;
         }
