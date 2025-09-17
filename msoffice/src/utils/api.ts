@@ -1,4 +1,4 @@
-import { normalizeLineEndings, loadSettings, IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, filterIgnoredIndividualErrors as filterIgnoredIndividualErrors, filterIgnoredErrorTags } from '.';
+import { IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, filterIgnoredErrorTags, filterIgnoredIndividualErrors, loadSettings, normalizeLineEndings } from '.';
 
 const apiUrl = 'https://api-giellalt.uit.no/';
 
@@ -45,7 +45,7 @@ export async function apiRequestGrammarCheck(text: string, language: string): Pr
 
     const ignoredErrorTags = loadSettings(IGNORED_ERROR_TAGS_KEY);
     if (ignoredErrorTags) {
-        payload['ignore_tags'] = ignoredErrorTags.split(',');
+        payload['ignore'] = ignoredErrorTags.split(',');
     }
 
     try {

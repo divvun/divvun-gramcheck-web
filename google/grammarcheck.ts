@@ -181,13 +181,17 @@ interface GrammarCheckApiResponse {
 }
 
 function grammarCheckApiRequest(lang: string, text: string): GrammarCheckApiResponse {
+    const ignoreTags = getIgnoredTags();
+    const payload = {
+        text: normalizeLineEndings(text),
+    }
+    if (ignoreTags.length > 0) {
+        payload['ignore'] = ignoreTags;
+    }
     return apiRequest({
         method: 'post',
         url: `${apiUrl}grammar/${lang}`,
-        payload: {
-            text: normalizeLineEndings(text),
-            ignore_tags: getIgnoredTags()
-        }
+        payload
     })
 }
 
