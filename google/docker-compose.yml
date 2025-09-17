@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  google-docs-dev:
+    build: .
+    container_name: divvun-google-docs-dev
+    network_mode: host
+    volumes:
+      # Mount source code for live editing
+      - .:/app
+      # Mount clasp credentials (create ~/.clasp directory first)
+      - ~/.clasp:/root/.clasp
+      # Preserve node_modules
+      - /app/node_modules
+    working_dir: /app
+    stdin_open: true
+    tty: true
+    environment:
+      - NODE_ENV=development
+    command: bash

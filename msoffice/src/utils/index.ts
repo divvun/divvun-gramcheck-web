@@ -4,6 +4,7 @@ import { APIGrammarError } from './api';
 export const IGNORED_ERROR_TAGS_KEY = 'ignoredErrorTags';
 export const SELECTED_LANGUAGE_KEY = 'selectedLanguage';
 export const IGNORED_ERRORS_KEY = 'ignoredIndividualErrors';
+export const USE_BETA_API_KEY = 'useBetaApi';
 
 export function clipToErrorContext(parargaph: string, errorText: string, errorOffset: number): string {
     const errorTextPos = parargaph.indexOf(errorText, errorOffset);
@@ -148,6 +149,15 @@ export function loadSettings(key: string): string | null {
 
 export function saveSettings(key: string, value: string) {
     localStorage.setItem(key, value);
+}
+
+export function getUseBetaApi(): boolean {
+    const useBeta = loadSettings(USE_BETA_API_KEY);
+    return useBeta === 'true';
+}
+
+export function setUseBetaApi(useBeta: boolean) {
+    saveSettings(USE_BETA_API_KEY, useBeta.toString());
 }
 
 export function filterIgnoredErrorTags(grammarErrors: APIGrammarError[]): APIGrammarError[] {

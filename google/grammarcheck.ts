@@ -3,10 +3,12 @@
  */
 
 const apiUrl = 'https://api-giellalt.uit.no/';
+const betaApiUrl = 'https://beta.api.giellalt.org/';
 
 const IGNORED_ERROR_TAGS_KEY = 'ignoredErrorTags';
 const SELECTED_LANGUAGE_KEY = 'selectedLanguage';
 const IGNORED_ERRORS_KEY = 'ignoredIndividualErrors';
+const USE_BETA_API_KEY = 'useBetaApi';
 
 function onOpen(e) {
     DocumentApp.getUi().createAddonMenu()
@@ -51,6 +53,8 @@ function showPreferences() {
         name: name,
         ignored: tagsAnyIgnored_(ignoredTags, groupedTags[name])
     }));
+
+    template['useBetaApi'] = getUseBetaApi();
 
     const ui = template.evaluate();
     DocumentApp.getUi().showModalDialog(ui, "Preferences");
@@ -190,7 +194,7 @@ function grammarCheckApiRequest(lang: string, text: string): GrammarCheckApiResp
     }
     return apiRequest({
         method: 'post',
-        url: `${apiUrl}grammar/${lang}`,
+        url: `${getCurrentApiUrl()}grammar/${lang}`,
         payload
     })
 }
@@ -204,7 +208,7 @@ interface LanguageOptions {
 
 function apiRequestLanguageOptions(): LanguageOptions {
     return apiRequest({
-        url: `${apiUrl}languages`,
+        url: `${getCurrentApiUrl()}languages`,
         method: 'get',
     });
 }
@@ -221,7 +225,7 @@ function apiRequestGrammarCheckerPreferences(): GrammarCheckerAvailablePreferenc
     }
 
     return apiRequest({
-        url: `${apiUrl}preferences/grammar/${selectedLanguage}`,
+        url: `${getCurrentApiUrl()}${getPreferencesEndpoint(selectedLanguage)}`,
         method: 'get',
     });
 }
@@ -295,6 +299,11 @@ function saveIgnoredTags(tags: string[]) {
     saveSettings(IGNORED_ERROR_TAGS_KEY, tags.join(","))
 }
 
+function savePreferences(ignoredTags: string[], useBetaApi: boolean) {
+    saveIgnoredTags(ignoredTags);
+    setUseBetaApi(useBetaApi);
+}
+
 function include(filename) {
     return HtmlService.createHtmlOutputFromFile(filename)
         .getContent();
@@ -311,4 +320,23 @@ function saveSettings(key: string, value: string) {
     const userProperties = PropertiesService.getUserProperties();
     Logger.log("save " + key + " = " + value);
     userProperties.setProperty(key, value);
+}
+
+function getUseBetaApi(): boolean {
+    const useBeta = loadSettings(USE_BETA_API_KEY);
+    return useBeta === 'true';
+}
+
+function setUseBetaApi(useBeta: boolean) {
+    saveSettings(USE_BETA_API_KEY, useBeta.toString());
+}
+
+function getCurrentApiUrl(): string {
+    return getUseBetaApi() ? betaApiUrl : apiUrl;
+}
+
+function getPreferencesEndpoint(language: string): string {
+    return getUseBetaApi()
+        ? `grammar/${language}/preferences`
+        : `preferences/grammar/${language}`;
 }

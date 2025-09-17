@@ -1,6 +1,6 @@
-import * as React from 'react';
 import { Checkbox } from 'office-ui-fabric-react';
-import { loadSettings, saveSettings, IGNORED_ERROR_TAGS_KEY } from '../utils';
+import * as React from 'react';
+import { getUseBetaApi, IGNORED_ERROR_TAGS_KEY, loadSettings, saveSettings, setUseBetaApi } from '../utils';
 import { apiRequestGrammarCheckerPreferences, GrammarCheckerAvailablePreferences } from '../utils/api';
 
 export interface SettingsProps {
@@ -10,6 +10,7 @@ type ErrorTags = GrammarCheckerAvailablePreferences['error_tags'];
 interface SettingsState {
     allAvailableErrorTags: ErrorTags,
     selectedIgnoredErrorTags: string[],
+    useBetaApi: boolean,
 }
 
 export default class Settings extends React.Component<SettingsProps, SettingsState> {
@@ -18,6 +19,7 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
         this.state = {
             allAvailableErrorTags: {},
             selectedIgnoredErrorTags: [],
+            useBetaApi: getUseBetaApi(),
         };
     }
 
@@ -98,6 +100,14 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
         return !result;
     }
 
+    onChangeBetaApi = (checked: boolean) => {
+        this.setState({
+            useBetaApi: checked,
+        }, () => {
+            setUseBetaApi(checked);
+        });
+    }
+
     render() {
         const ignoredErrorTagsCheckboxes: JSX.Element[] = [];
         for (const tagName of Object.keys(this.state.allAvailableErrorTags)) {
@@ -121,6 +131,13 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
                 <h2>Error types</h2>
                 <p>Select the types of errors the grammar checker should warn you about.</p>
                 {ignoredErrorTagsCheckboxes}
+
+                <h2>API Settings</h2>
+                <Checkbox
+                    label="Use Beta API"
+                    checked={this.state.useBetaApi}
+                    onChange={(_, checked) => { this.onChangeBetaApi(checked); }}
+                />
             </div>
         );
     }

@@ -1,6 +1,7 @@
-import { IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, filterIgnoredErrorTags, filterIgnoredIndividualErrors, loadSettings, normalizeLineEndings } from '.';
+import { IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, filterIgnoredErrorTags, filterIgnoredIndividualErrors, loadSettings, normalizeLineEndings, getUseBetaApi } from '.';
 
 const apiUrl = 'https://api-giellalt.uit.no/';
+const betaApiUrl = 'https://beta.api.giellalt.org/';
 
 export interface APIGrammarError {
     error_text: string;
@@ -50,7 +51,7 @@ export async function apiRequestGrammarCheck(text: string, language: string): Pr
 
     try {
         const result = await apiRequest({
-            url: `${apiUrl}grammar/${language}`,
+            url: `${getCurrentApiUrl()}grammar/${language}`,
             method: 'POST',
             payload,
         }) as GrammarCheckApiResponse;
@@ -76,7 +77,7 @@ export async function apiRequestGrammarCheckerPreferences(): Promise<GrammarChec
     }
 
     return apiRequest({
-        url: `${apiUrl}preferences/grammar/${selectedLanguage}`,
+        url: `${getCurrentApiUrl()}${getPreferencesEndpoint(selectedLanguage)}`,
         method: 'GET',
     });
 }
@@ -90,7 +91,17 @@ export interface LanguageOptions {
 
 export async function apiRequestLanguageOptions(): Promise<LanguageOptions> {
     return apiRequest({
-        url: `${apiUrl}languages`,
+        url: `${getCurrentApiUrl()}languages`,
         method: 'GET',
     });
+}
+
+function getCurrentApiUrl(): string {
+    return getUseBetaApi() ? betaApiUrl : apiUrl;
+}
+
+function getPreferencesEndpoint(language: string): string {
+    return getUseBetaApi()
+        ? `grammar/${language}/preferences`
+        : `preferences/grammar/${language}`;
 }

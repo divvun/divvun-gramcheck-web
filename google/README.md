@@ -4,23 +4,38 @@ The grammar checker is an add-on to Google Docs.
 
 # Requirements
 
-- Node.js (> 9.0)
-- npm
+- Docker and Docker Compose
 
 # Development setup
 
-- Install [nvm](https://github.com/creationix/nvm)
-- Install a recent node, e.g. ```nvm install v10.14.2 && nvm use v10.14.2```
-- Install [clasp](https://github.com/google/clasp) in order to build and deploy to Google's App Scripts backend.
+We use Docker to provide a consistent development environment regardless of your platform (macOS, Linux, Windows, Apple Silicon, etc.).
 
-If the above fails or tries something silly like downloading the source and compiling, .. and you're running on an M1 (or M*) mac, you can `arch -x86_64 /bin/zsh` first to run everything through rosetta.
+## Quick Start with Docker
 
-Steps to build and deploy for your account on google:
+1. **Build the development environment:**
+   ```bash
+   ./docker-dev.sh rebuild
+   ```
+   (This ensures you have the correct clasp version 2.3.0 that works with Node.js 10)
 
-- `npm install`
-- `npm run clasp login` (this step will open a browser on your machine to do some verification. )
-- Enable Apps Script API at https://script.google.com/home/usersettings if you haven't (the next step will ask you to do this anyway)
-- `npm run clasp create "Divvun Grammar Checker"` (select 'docs')
+2. **Start the development environment:**
+   ```bash
+   ./docker-dev.sh start
+   ```
+
+3. **Login to Google Apps Script:**
+   ```bash
+   ./docker-dev.sh clasp login
+   ```
+   This will open a browser window for Google OAuth authentication. The Docker container uses host networking, so the OAuth callback will work seamlessly. Make sure to enable the Apps Script API at https://script.google.com/home/usersettings if you haven't already.
+
+   Your credentials will be saved to `~/.clasp/` on your host machine and automatically mounted in the container.
+
+4. **Create a new Apps Script project:**
+   ```bash
+   ./docker-dev.sh clasp create "Divvun Grammar Checker"
+   ```
+   Select 'docs' when prompted.
 
 You'll get two links. The first is the doc that's setup for you to test in. The second one is the script repo. You can run the extension now in Extensions -> Google -> Grammar check
 
@@ -34,8 +49,38 @@ Created new Google Doc: https://drive.google.com/open?id=1XI0osST4SEXsz0kmP-2DxT
 Created new Google Docs Add-on script: https://script.google.com/d/1IbhhyGrrMgQuPaJaRMy0E1vvDvIHGXGYcALsS4fV5-Pge96CTt-yUI4n/edit
 ```
 
-- `npm run push` (push code to the script repo )
-- `npm run open` (open the script repo in online editor)
+5. **Push code to Apps Script:**
+   ```bash
+   ./docker-dev.sh clasp push
+   ```
+
+6. **Open the script editor:**
+   ```bash
+   ./docker-dev.sh clasp open
+   ```
+
+## Docker Development Commands
+
+The `docker-dev.sh` script provides convenient commands for development:
+
+- `./docker-dev.sh start` - Start the development environment
+- `./docker-dev.sh stop` - Stop the development environment
+- `./docker-dev.sh shell` - Access container shell for manual commands
+- `./docker-dev.sh clasp [args]` - Run clasp commands (login, push, open, etc.)
+- `./docker-dev.sh npm [args]` - Run npm commands
+- `./docker-dev.sh logs` - Show container logs
+- `./docker-dev.sh cleanup` - Remove container and image (full cleanup)
+- `./docker-dev.sh help` - Show help with all available commands
+
+## Legacy Setup (without Docker)
+
+If you prefer to set up the environment manually:
+
+- Node.js (> 9.0)
+- npm
+- Install clasp globally: `npm install -g @google/clasp`
+- Run `npm install` in this directory
+- Use `npm run clasp [command]` instead of the docker-dev.sh script
 
 
 # Publishing
@@ -48,7 +93,7 @@ cat .clasp.json
 {"scriptId":"1LIO6pqCziYtTTzVFRQzA1SSCCie_5XTcnZxTHCyVvqyAugYSQiLLNQqb"}
 ```
 
-You can `npm run push` and test until you're good and happy. Once you're happy, you create a new version. Do that according to https://developers.google.com/apps-script/guides/versions#creating_a_version
+You can run `./docker-dev.sh clasp push` and test until you're good and happy. Once you're happy, you create a new version. Do that according to https://developers.google.com/apps-script/guides/versions#creating_a_version
 
 When you've created the new version, change the script version on https://console.cloud.google.com/apis/api/appsmarket-component.googleapis.com/googleapps_sdk?project=divvun-gapps-grammar-checker&pli=1
 

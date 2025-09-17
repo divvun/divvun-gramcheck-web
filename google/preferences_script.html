@@ -13,6 +13,8 @@
             ignoredTags = ignoredTags.concat(tags)
         })
 
+        var useBetaApi = $("input[name='useBetaApi']").is(':checked')
+
         google.script.run
             .withSuccessHandler(function () {
                 google.script.host.close()
@@ -21,8 +23,8 @@
                 showError(msg, $('#button-bar'));
                 setLoading(false)
             })
-            .saveIgnoredTags(ignoredTags);
-        
+            .savePreferences(ignoredTags, useBetaApi);
+
     }
 
     function closeDialog() {
