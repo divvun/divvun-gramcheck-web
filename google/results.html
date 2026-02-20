@@ -1,15 +1,15 @@
 <div class="grammar-errors-list">
-    <? for (var i = 0; i < errors.length; i++) { ?>
+    <? for (let i = 0; i < errors.length; i++) { ?>
     <div class="grammar-error"
     data-error-text="<?= errors[i].errorText ?>"
     data-error-index="<?= errors[i].startIndex ?>"
     data-error-paragraph-index="<?= paragraphIndex ?>"
     >
       <div class="reason"><?= errors[i].reason ?></div>
-      <div classs="context"><?!= errors[i].contextText ?></div>
+      <div class="context"><?!= errors[i].contextText ?></div>
       <div class="suggestions-heading"><?= errors[i].suggestions.length > 0 ? 'Suggested corrections' : '' ?></div>
       <div class="suggestions-list">
-        <? for (var j = 0; j < errors[i].suggestions.length; j++) { ?>
+        <? for (let j = 0; j < errors[i].suggestions.length; j++) { ?>
           <div class="suggestion" 
             data-error-text="<?= errors[i].errorText ?>"
             data-error-index="<?= errors[i].startIndex ?>"

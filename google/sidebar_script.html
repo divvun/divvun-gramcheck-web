@@ -1,9 +1,15 @@
 <script>
+    // Track last operation context for retry
+    let lastOperation = null;
+    let currentError = null;
+
     $(function () {
-        $('#run-check').click(runGrammarCheck);
-        $('#open-preferences').click(openPreferences);
-        $('select[name="language"]').change(selectedLanguageChanged)
-        
+        $('#run-check').on("click", runGrammarCheck);
+        $('#open-preferences').on("click", openPreferences);
+        $('select[name="language"]').on("change", selectedLanguageChanged);
+        $('#error-retry').on("click", handleRetry);
+        $('#error-dismiss').on("click", handleDismissError);
+
         setLoading(true)
         refreshLanguagesList(function () {
             loadSettings(function() {
@@ -12,8 +18,74 @@
         });
     });
 
+    function getErrorIcon(errorType) {
+        switch (errorType) {
+            case 'NETWORK_ERROR': return '🔌';
+            case 'TIMEOUT_ERROR': return '⏱️';
+            case 'API_ERROR': return '⚠️';
+            case 'PARSE_ERROR': return '❌';
+            default: return '⚠️';
+        }
+    }
+
+    function displayTypedError(error) {
+        if (!error) {
+            hideError();
+            return;
+        }
+
+        currentError = error;
+        const container = $('#error-container');
+
+        // Set appropriate styling based on retryable status
+        container.removeClass('error-retryable error-fatal visible');
+        container.addClass(error.retryable ? 'error-retryable' : 'error-fatal');
+        container.addClass('visible');
+
+        // Set content
+        container.find('.error-icon').text(getErrorIcon(error.type));
+        container.find('.error-user-message').text(error.userMessage);
+
+        if (error.statusCode) {
+            container.find('.error-code').text('(Error ' + error.statusCode + ')').show();
+        } else {
+            container.find('.error-code').hide();
+        }
+
+        // Show/hide retry button based on retryable status
+        if (error.retryable) {
+            $('#error-retry').show();
+        } else {
+            $('#error-retry').hide();
+        }
+    }
+
+    function hideError() {
+        currentError = null;
+        $('#error-container').removeClass('visible');
+    }
+
+    function handleRetry() {
+        hideError();
+
+        if (lastOperation === 'grammarCheck') {
+            runGrammarCheck();
+        } else if (lastOperation === 'loadLanguages') {
+            setLoading(true);
+            refreshLanguagesList(function() {
+                loadSettings(function() {
+                    setLoading(false);
+                });
+            });
+        }
+    }
+
+    function handleDismissError() {
+        hideError();
+    }
+
     function selectedLanguageChanged() {
-        var lang = $('select[name="language"] option:selected').val();
+        const lang = $('select[name="language"] option:selected').val();
         setLoading(true)
 
         $('#error').remove();
@@ -33,7 +105,7 @@
     }
 
     function loadSettings(onSuccess, onFailure) {
-        var select = $('select[name="language"]')
+        const select = $('select[name="language"]')
         google.script.run
             .withSuccessHandler(
                 function (result, element) {
@@ -47,20 +119,31 @@
     }
 
     function refreshLanguagesList(onSuccess, onFailure) {
-        var select = $('select[name="language"]')
+        lastOperation = 'loadLanguages';
+        const select = $('select[name="language"]')
         google.script.run
             .withSuccessHandler(
                 function (result, element) {
-                    var languages = result.available.grammar
+                    const languages = result.available.grammar
                     element.empty()
-                    for (var lang in languages) {
+                    for (const lang in languages) {
                         element.append(new Option(languages[lang], lang))
                     }
-
+                    hideError();
                     if (onSuccess)
                         onSuccess()
                 })
-            .withFailureHandler(onFailure)
+            .withFailureHandler(function(msg, element) {
+                setLoading(false);
+                // Handle error object or plain message
+                if (msg && typeof msg === 'object' && msg.userMessage) {
+                    displayTypedError(msg);
+                } else {
+                    showError(msg, $('#button-bar'));
+                }
+                if (onFailure)
+                    onFailure(msg, element);
+            })
             .withUserObject(select)
             .apiRequestLanguageOptions();
     }
@@ -72,42 +155,61 @@
                 setLoading(false)
             })
             .withFailureHandler(
-                function (msg, element) {
+                function (msg) {
+                    setLoading(false)
                     showError(msg, $('#button-bar'));
                 })
-            .withUserObject(this)
             .showPreferences();
     }
 
     function runGrammarCheck() {
         setLoading(true)
-        $('#error').remove();
+        hideError();
+        lastOperation = 'grammarCheck';
 
-        var lang = $('select[name="language"] option:selected').val();
+        const lang = $('select[name="language"] option:selected').val();
         google.script.run
             .withSuccessHandler(
-                function (grammarCheckResultsHtml, element) {
+                function (result, element) {
                     setLoading(false)
-                    $('#results').html(grammarCheckResultsHtml);
-                    $('.suggestion').click(runCorrection);
-                    $('.grammar-error').hover(highlightError, clearHighlight);
+
+                    // Handle structured response
+                    if (result && typeof result === 'object') {
+                        $('#results').html(result.html);
+
+                        // Display error if present
+                        if (result.error) {
+                            displayTypedError(result.error);
+                        }
+                    } else {
+                        // Legacy: plain HTML string response
+                        $('#results').html(result);
+                    }
+
+                    $('.suggestion').on("click", runCorrection);
+                    $('.grammar-error').on("mouseenter", highlightError).on("mouseleave", clearHighlight);
                 })
             .withFailureHandler(
                 function (msg, element) {
-                    showError(msg, $('#button-bar'));
                     setLoading(false)
+                    // Handle error object or plain message
+                    if (msg && typeof msg === 'object' && msg.userMessage) {
+                        displayTypedError(msg);
+                    } else {
+                        showError(msg, $('#button-bar'));
+                    }
                 })
             .withUserObject(this)
             .runGrammarCheckOnWholeText(lang);
     }
 
     function runCorrection() {
-        var errorText = $(this).attr('data-error-text');
-        var errorIndex = $(this).attr('data-error-index');
-        var errorParagraphIndex = $(this).attr('data-error-paragraph-index');
-        var correction = $(this).attr('data-correction');
-        var parentIndex = $(this).attr('data-parent-index');
-        var parent = $(this).closest('.grammar-error');
+        const errorText = $(this).attr('data-error-text');
+        const errorIndex = $(this).attr('data-error-index');
+        const errorParagraphIndex = $(this).attr('data-error-paragraph-index');
+        const correction = $(this).attr('data-correction');
+        const parentIndex = $(this).attr('data-parent-index');
+        const parent = $(this).closest('.grammar-error');
 
         setLoading(true)
         google.script.run
@@ -127,9 +229,9 @@
     }
 
     function highlightError() {
-        var errorText = $(this).attr('data-error-text');
-        var errorIndex = $(this).attr('data-error-index');
-        var errorParagraphIndex = $(this).attr('data-error-paragraph-index');
+        const errorText = $(this).attr('data-error-text');
+        const errorIndex = $(this).attr('data-error-index');
+        const errorParagraphIndex = $(this).attr('data-error-paragraph-index');
 
         google.script.run
             .highlightError(errorText, errorIndex, errorParagraphIndex);
@@ -141,7 +243,7 @@
     }
 
     function setLoading(loading) {
-        var sidebar = $(".sidebar")
+        const sidebar = $(".sidebar")
         if (loading) {
             showLoading()
             disableAll(sidebar)

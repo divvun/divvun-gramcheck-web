@@ -1,19 +1,19 @@
 <script>
     $(function () {
-        $('#cancel').click(closeDialog);
-        $('#save').click(savePreferences);
+        $('#cancel').on("click", closeDialog);
+        $('#save').on("click", savePreferences);
     });
 
     function savePreferences() {
         setLoading(true)
 
-        var ignoredTags = []
+        const ignoredTags = []
         $.each($("input[name='ignoredTag']:not(:checked)"), function() {
-            var tags = $(this).val().split(",")
-            ignoredTags = ignoredTags.concat(tags)
+            const tags = $(this).val().split(",")
+            ignoredTags.push(...tags)
         })
 
-        var useBetaApi = $("input[name='useBetaApi']").is(':checked')
+        const useBetaApi = $("input[name='useBetaApi']").is(':checked')
 
         google.script.run
             .withSuccessHandler(function () {
@@ -32,7 +32,7 @@
     }
 
     function setLoading(loading) {
-        var dialog = $(".dialog")
+        const dialog = $(".dialog")
         if (loading) {
             disableAll(dialog)
         } else {

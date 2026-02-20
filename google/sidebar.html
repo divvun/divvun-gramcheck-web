@@ -23,9 +23,23 @@
             <button class="blue" id="run-check">Run grammar check</button>
         </div>
 
+        <div id="error-container" class="error-container">
+            <div class="error-content">
+                <span class="error-icon"></span>
+                <div class="error-text">
+                    <div class="error-user-message"></div>
+                    <div class="error-code"></div>
+                </div>
+            </div>
+            <div class="error-actions">
+                <button class="error-retry-btn" id="error-retry">Retry</button>
+                <button class="error-dismiss-btn" id="error-dismiss">Dismiss</button>
+            </div>
+        </div>
+
         <div class="block" id="loadingAnimation">
-            <center><div class="lds-dual-ring"></div></center>
-            <center>Loading...</center>
+            <div class="loading-container"><div class="lds-dual-ring"></div></div>
+            <div class="loading-container">Loading...</div>
         </div>
 
         <div class="block" id="results">
@@ -33,10 +47,11 @@
     </div>
 
     <div class="sidebar bottom">
-        <span class="gray"><a target="_blank" href="http://divvun.no/privacy.html">Privacy Policy</a></span>
+        <span class="gray">v<?= getVersion() ?></span>
+        <span class="gray"><a target="_blank" href="https://divvun.no/privacy.html">Privacy Policy</a></span>
     </div>
 
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="//code.jquery.com/jquery-4.0.0.min.js"></script>
     <?!= include("sidebar_script") ?>
         <?!= include("script") ?>
 </body>

@@ -1,6 +1,7 @@
 <script>
     function showError(msg, element) {
-        var div = $('<div id="error" class="error">' + msg + '</div>');
+        const text = (msg && msg.message) ? msg.message : String(msg);
+        const div = $('<div id="error" class="error"></div>').text(text);
         $(element).after(div);
     }
 

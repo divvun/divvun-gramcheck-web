@@ -1,11 +1,11 @@
-# Use Node.js 10 to match current requirements
-FROM node:10-slim
+# Use Node.js 22 LTS
+FROM node:22-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install global dependencies (exact version to match package.json)
-RUN npm install -g @google/clasp@2.3.0
+# Install global dependencies
+RUN npm install -g @google/clasp@3.2.0
 
 # Copy package files
 COPY package*.json ./
