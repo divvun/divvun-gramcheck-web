@@ -96,44 +96,58 @@ The [Divviun Grammar Checker](https://appsource.microsoft.com/en-us/product/offi
 
 There's a checklist of stuff to do before publishing - it lives [here](https://learn.microsoft.com/en-us/partner-center/marketplace/checklist). Saying that as a reference only. Technically there shouldn't be much more stuff in here.
 
-Unlike google docs, the microsoft add-in:s are hosted by us. So. We provide microsoft with a manifest that points to the URL we'd like the server to load. The URL lives on our webserver - https://api-giellalt.uit.no/msoffice/index.html
+Unlike google docs, the microsoft add-in:s are hosted by us. We provide Microsoft with a manifest that points at a URL we control — https://api.giellalt.org/msoffice/index.html — so **a content-only update needs no Partner Center resubmission**. Only changes to the URLs, permissions or the add-in id require going back to Microsoft.
 
-So unless we need to make changes to any of the URLs, we can ignore updating the manifest and just update the hosting files on api-giellalt.uit.no . This is shoe-horned in on the divvun-api server. 
+## Where the files are served from
 
-So.. 
+Traefik serves them itself, using the [statiq](https://github.com/hhftechnology/statiq) filesystem plugin. There is no backend application in the path:
+
+```
+https://api.giellalt.org/msoffice/*
+  -> IngressRoute api-giellalt-https           (k0s-config: ingress/api-giellalt-ingress.yaml)
+  -> msoffice-root-redirect, strip-msoffice-prefix, statiq-msoffice
+                                               (k0s-config: ingress/statiq-msoffice-middleware.yaml)
+  -> statiq reads /msoffice inside the Traefik pod
+  -> NFS divvun-cp:/srv/nfs/pahkat/msoffice    (k0s-config: apps/infrastructure/traefik-app.yaml)
+```
+
+`api-giellalt.uit.no` is still matched on the same route, so both hostnames serve the same files.
+
+The `divvun-worker-static-prod` service named in the route is a formality — statiq terminates the request and that service is never reached.
+
+## Deploying
+
+Build (any recent Node; the old `node:10` container is no longer needed):
 
 ```bash
-docker run --platform linux/amd64 --rm -ti -p 3000:3000 -v $(pwd):/app node:10 bash
-cd app
-npm i
+npm install
 npm run build
-exit
 ```
 
-Now you have a dist folder filled with happy dist files. This is your Add-in (previously Add-on). You can follow the instruction here https://github.com/divvun/divvun-api/blob/1bb26c4b8e40a3665c189800027b4c3a7afd7e5f/deployment/README.md to generate a full deployment set that deploys not only this content, but also all the other divvun components. 
+That leaves the add-in in `dist/`. Publishing it is a **manual copy** — there is no CI job, ArgoCD sync or script that does this for you.
 
-You can also just replace the contents of the dist-folder with your new add-in. Either way, you'll need your public key added to the set of known keys on api-giellalt.uit.no first. 
+The share is normally mounted locally as `/Volumes/pahkat`, so deploying is just:
 
 ```bash
-cd dist
-tar czvf dist.tar.gz *
-cd ..
-mv dist/dist.tar.gz .
-scp dist.tar.gz root@api-giellalt.uit.no:/tmp/dist.tar.gz
-ssh root@api-giellalt.uit.no
-cd /home/api/dist
-rm -rf msoffice.new
-mkdir msoffice.new
-cd msoffice.new
-tar xvf /tmp/dist.tar.gz
-cd ..
-mv msoffice msoffice$(date +"%Y%m%d%H%M%S")
-mv msoffice.new msoffice
-sudo systemctl restart divvun-api # restart the api for changes to take effect
-exit
-rm dist.tar.gz
-echo "Done"
+cp -R dist/ /Volumes/pahkat/msoffice/
 ```
+
+Copy **over the top; do not wipe the directory first.** `index.html` is cached by clients for a day (see below), so browsers still holding the previous `index.html` need the previous hashed bundles to remain in place. That is why several `app.<hash>.js` files accumulate there — it is intentional, and they can be pruned once they are well past the cache window.
+
+If the share is not mounted, write it on `divvun-cp` instead — the NFS export is mounted `readOnly` into the Traefik pods and Traefik runs as uid 65534, so it cannot be written through the pod:
+
+```bash
+tar czf dist.tar.gz -C dist .
+scp dist.tar.gz divvun-cp:/tmp/
+ssh divvun-cp 'tar xzf /tmp/dist.tar.gz -C /srv/nfs/pahkat/msoffice'
+rm dist.tar.gz
+```
+
+No Traefik restart is needed — statiq reads from disk per request.
+
+**`index.html` is served with `cache-control: max-age=86400`**, so a warmed client can keep showing the old build for up to 24 hours. Clear the Word web cache (below) when verifying a deploy.
+
+There is no beta channel for the add-in itself: `beta.api.giellalt.org/msoffice/` does not exist. The "Use Beta API" setting only switches which API the same bundle talks to.
 
 Remember to run your tests with the cache disabled. When in word, hover the grammar checker until the "i" appears __(1)__, click it and then clear the web cache __(2)__ and reload __(3)__ in the menu that appears:
 
