@@ -12,7 +12,7 @@
   <Id>fa2cecd4-a288-449c-b932-0a760948757d</Id>
 
   <!--Version. Updates from the store only get triggered if there is a version change. -->
-  <Version>1.3.2.0</Version>
+  <Version>1.4.0.0</Version>
   <ProviderName>UiT Norges arktiske universitet</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <!-- The display name of your add-in. Used on the store and various places of the Office UI such as the add-ins dialog. -->
@@ -20,8 +20,8 @@
   <Description DefaultValue="A grammar checker for the Sámi (and other) languages to be used with Microsoft Office Online"/>
 
   <!-- Icon for your add-in. Used on installation screens and the add-ins dialog. -->
-  <IconUrl DefaultValue="https://api-giellalt.uit.no/msoffice/assets/icon-32.png"/>
-  <HighResolutionIconUrl DefaultValue="https://api-giellalt.uit.no/msoffice/assets/icon-80.png"/>
+  <IconUrl DefaultValue="https://api.giellalt.org/msoffice/assets/icon-32.png"/>
+  <HighResolutionIconUrl DefaultValue="https://api.giellalt.org/msoffice/assets/icon-80.png"/>
 
   <!--If you plan to submit this add-in to the Office Store, uncomment the SupportUrl element below-->
   <SupportUrl DefaultValue="http://divvun.no/"/>
@@ -40,7 +40,7 @@
   </Requirements>
 
   <DefaultSettings>
-    <SourceLocation DefaultValue="https://api-giellalt.uit.no/msoffice/index.html"/>
+    <SourceLocation DefaultValue="https://api.giellalt.org/msoffice/index.html"/>
   </DefaultSettings>
   <!-- End TaskPane Mode integration.  -->
 
@@ -120,20 +120,24 @@
     <!-- You can use resources across hosts and form factors. -->
     <Resources>
       <bt:Images>
-        <bt:Image id="Contoso.tpicon_16x16" DefaultValue="https://api-giellalt.uit.no/msoffice/assets/icon-16.png"/>
-        <bt:Image id="Contoso.tpicon_32x32" DefaultValue="https://api-giellalt.uit.no/msoffice/assets/icon-32.png"/>
-        <bt:Image id="Contoso.tpicon_80x80" DefaultValue="https://api-giellalt.uit.no/msoffice/assets/icon-80.png"/>
+        <bt:Image id="Contoso.tpicon_16x16" DefaultValue="https://api.giellalt.org/msoffice/assets/icon-16.png"/>
+        <bt:Image id="Contoso.tpicon_32x32" DefaultValue="https://api.giellalt.org/msoffice/assets/icon-32.png"/>
+        <bt:Image id="Contoso.tpicon_80x80" DefaultValue="https://api.giellalt.org/msoffice/assets/icon-80.png"/>
       </bt:Images>
       <bt:Urls>
-        <bt:Url id="Contoso.Taskpane.Url" DefaultValue="https://api-giellalt.uit.no/msoffice/index.html"/>
+        <bt:Url id="Contoso.Taskpane.Url" DefaultValue="https://api.giellalt.org/msoffice/index.html"/>
         <bt:Url id="Contoso.GetStarted.LearnMoreUrl" DefaultValue="https://go.microsoft.com/fwlink/?LinkId=276812" />
-        <bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="https://api-giellalt.uit.no/msoffice/function-file/function-file.html"/>
+        <bt:Url id="Contoso.DesktopFunctionFile.Url" DefaultValue="https://api.giellalt.org/msoffice/function-file/function-file.html"/>
       </bt:Urls>
       <!-- ShortStrings max characters==125. -->
       <bt:ShortStrings>
         <bt:String id="Contoso.TaskpaneButton.Label" DefaultValue="Divvun Grammar Checker" />
         <bt:String id="Contoso.Group1Label" DefaultValue="Commands Group" />
         <bt:String id="Contoso.GetStarted.Title" DefaultValue="Divvun grammar checker and fix suggestions" />
+        <!-- Critique popup branding (WordApi 1.8) -->
+        <bt:String id="Divvun.Critique.Branding" DefaultValue="Divvun Grammar Checker" />
+        <bt:String id="Divvun.Critique.Title" DefaultValue="Grammar suggestion" />
+        <bt:String id="Divvun.Critique.Subtitle" DefaultValue="Click a suggestion to apply it" />
       </bt:ShortStrings>
       <!-- LongStrings max characters==250. -->
       <bt:LongStrings>

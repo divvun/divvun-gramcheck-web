@@ -223,6 +223,89 @@ body {
     .grammar-tag-checkbox {
         margin-top: 10px;
     }
+
+    /* Critique API status indicator */
+    .critique-status {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        color: #5f6368;
+        padding: 4px 0 8px;
+        font-family: "Segoe UI Web (West European)", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue", sans-serif;
+    }
+
+    .critique-status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #34a853;
+        flex-shrink: 0;
+    }
+
+    /* Annotation highlight animation (when user clicks annotation in document) */
+    .grammar-error.annotation-highlight {
+        animation: annotation-pulse 0.6s ease-in-out 2;
+    }
+
+    @keyframes annotation-pulse {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(0, 120, 212, 0); }
+        50% { box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.3); }
+    }
+
+    .error-message-container {
+        margin-bottom: 12px;
+
+        .error-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .error-icon {
+                font-size: 14px;
+                flex-shrink: 0;
+            }
+
+            .error-text {
+                flex: 1;
+                font-size: 13px;
+                line-height: 1.4;
+            }
+
+            .error-code {
+                font-size: 11px;
+                color: #666;
+                font-family: monospace;
+            }
+        }
+
+        .error-actions {
+            display: flex;
+            align-items: center;
+        }
+    }
+
+    .network-status {
+        padding: 8px 16px;
+        font-size: 12px;
+        text-align: center;
+        border-bottom: 1px solid #edebe9;
+
+        &.offline {
+            background-color: #fed9cc;
+            color: #8a1538;
+        }
+
+        &.online {
+            background-color: #dff6dd;
+            color: #107c10;
+        }
+
+        .network-icon {
+            margin-right: 6px;
+            font-size: 14px;
+        }
+    }
 }
 
 .snackbar {

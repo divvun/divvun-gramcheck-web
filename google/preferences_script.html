@@ -1,42 +1,147 @@
 <script>
+    // ── localStorage helpers (duplicated — separate iframe from sidebar) ──
+
+    const LS_PREFIX = 'gramcheck_';
+
+    function lsGet(key) {
+        try { return localStorage.getItem(LS_PREFIX + key); } catch (_) { return null; }
+    }
+
+    function lsSet(key, value) {
+        try { localStorage.setItem(LS_PREFIX + key, value); } catch (_) {}
+    }
+
+    function getCachedSettings() {
+        return {
+            selectedLanguage: lsGet('selectedLanguage') || null,
+            useBetaApi: lsGet('useBetaApi') === 'true',
+            ignoredTags: (function () {
+                try { return JSON.parse(lsGet('ignoredTags') || '[]'); }
+                catch (_) { return []; }
+            })(),
+        };
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────
+
     $(function () {
         $('#cancel').on("click", closeDialog);
         $('#save').on("click", savePreferences);
+
+        loadPreferencesData();
     });
 
+    async function loadPreferencesData() {
+        setLoading(true);
+        try {
+            // Try localStorage first (sync, <1ms)
+            let settings = getCachedSettings();
+            let hadCache = (settings.selectedLanguage !== null || lsGet('useBetaApi') !== null);
+
+            // If no cache, fall back to GAS call
+            if (!hadCache) {
+                const initData = await gasRun('getInitData');
+                settings = initData;
+            }
+
+            // Set API URL based on beta preference
+            setApiBaseUrl(settings.useBetaApi);
+
+            // Set beta checkbox
+            $('#useBetaApi').prop('checked', settings.useBetaApi);
+
+            // Determine language for preferences endpoint
+            let lang = settings.selectedLanguage;
+            if (!lang) {
+                // No saved language — fetch language list to get first available
+                const langData = await fetchLanguageOptions();
+                const grammarLangs = Object.keys(langData.available.grammar);
+                lang = grammarLangs[0] || null;
+            }
+
+            if (!lang) {
+                $('#error-tags-list').html('<p>No languages available.</p>');
+                setLoading(false);
+                return;
+            }
+
+            // Fetch error tag preferences from API (client-side)
+            const prefsData = await fetchPreferences(lang);
+            const errorTags = prefsData.error_tags;
+            const currentIgnoredTags = settings.ignoredTags;
+
+            // Group tags by their localized name
+            const groupedTags = {};
+            for (const tag in errorTags) {
+                const name = errorTags[tag];
+                if (!groupedTags[name]) {
+                    groupedTags[name] = [];
+                }
+                groupedTags[name].push(tag);
+            }
+
+            // Build checkboxes
+            let html = '';
+            for (const name in groupedTags) {
+                const tags = groupedTags[name];
+                const tagValue = tags.join(',');
+                // "ignored" means ANY tag in this group is in the ignored list
+                const isIgnored = tags.some(function (t) {
+                    return currentIgnoredTags.indexOf(t) > -1;
+                });
+                // Checked = NOT ignored
+                const checked = isIgnored ? '' : ' checked';
+                html += '<input name="ignoredTag" type="checkbox"' + checked
+                    + ' value="' + escapeAttr(tagValue) + '">'
+                    + escapeHtml(name) + '</input><br/>';
+            }
+
+            $('#error-tags-list').html(html);
+        } catch (e) {
+            const msg = (e && e.userMessage) ? e.userMessage : ((e && e.message) ? e.message : String(e));
+            $('#error-tags-list').html('<p class="error">Failed to load preferences: ' + escapeHtml(msg) + '</p>');
+        } finally {
+            setLoading(false);
+        }
+    }
+
     function savePreferences() {
-        setLoading(true)
+        setLoading(true);
 
-        const ignoredTags = []
-        $.each($("input[name='ignoredTag']:not(:checked)"), function() {
-            const tags = $(this).val().split(",")
-            ignoredTags.push(...tags)
-        })
+        const ignoredTags = [];
+        $.each($("input[name='ignoredTag']:not(:checked)"), function () {
+            const tags = $(this).val().split(",");
+            ignoredTags.push.apply(ignoredTags, tags);
+        });
 
-        const useBetaApi = $("input[name='useBetaApi']").is(':checked')
+        const useBetaApi = $("input[name='useBetaApi']").is(':checked');
 
+        // Write to localStorage BEFORE GAS call — sidebar reads this on dialog close
+        lsSet('useBetaApi', String(useBetaApi));
+        lsSet('ignoredTags', JSON.stringify(ignoredTags));
+
+        // Persist to PropertiesService (authoritative storage)
         google.script.run
             .withSuccessHandler(function () {
-                google.script.host.close()
+                google.script.host.close();
             })
-            .withFailureHandler(function(msg) {
+            .withFailureHandler(function (msg) {
                 showError(msg, $('#button-bar'));
-                setLoading(false)
+                setLoading(false);
             })
             .savePreferences(ignoredTags, useBetaApi);
-
     }
 
     function closeDialog() {
-        google.script.host.close()
+        google.script.host.close();
     }
 
     function setLoading(loading) {
-        const dialog = $(".dialog")
+        const dialog = $(".dialog");
         if (loading) {
-            disableAll(dialog)
+            disableAll(dialog);
         } else {
-            enableAll(dialog)
+            enableAll(dialog);
         }
     }
 </script>

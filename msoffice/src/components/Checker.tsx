@@ -1,10 +1,26 @@
 import * as React from 'react';
-import { loadSettings, SELECTED_LANGUAGE_KEY, ignoreIndividualError, getRange, saveSettings, debounce } from '../utils';
+import { loadSettings, SELECTED_LANGUAGE_KEY, ignoreIndividualError, filterIgnoredIndividualErrors, getRange, saveSettings, debounce } from '../utils';
 import { GrammarCheckApiResponse, apiRequestGrammarCheck, APIGrammarError, apiRequestLanguageOptions } from '../utils/api';
+import { GrammarCheckError } from '../utils/errors';
+import {
+    supportsCritiques,
+    supportsCritiquePopups,
+    insertAnnotationsForParagraph,
+    removeAllAnnotations,
+    removeAnnotationsForParagraph,
+    clearAnnotationMap,
+    getAnnotationMeta,
+    getAllAnnotationMetas,
+    handlePopupAccept,
+    rejectAnnotation,
+    registerAnnotationEvents,
+    AnnotationMeta,
+} from '../utils/annotations';
 import { Overlay, Spinner, SpinnerSize, PrimaryButton, Dropdown, IDropdownOption } from 'office-ui-fabric-react';
 import GrammarErrorsList from './GrammarErrrorsList';
 import ErrorBoundary from './ErrorBoundary';
 import Snackbar from './Snackbar';
+import ErrorMessage from './ErrorMessage';
 
 const SNACKBAR_DISAPPEAR_AFTER_MS = 7000;
 
@@ -27,13 +43,22 @@ interface CheckerState {
         key: string,
         text: string,
     }[];
+    currentError: GrammarCheckError | null;
+    isOnline: boolean;
+    hasCritiqueSupport: boolean;
+    hasPopupSupport: boolean;
+    activeAnnotationId: string | null;
 }
 
 export default class Checker extends React.Component<CheckerProps, CheckerState> {
+    private cleanupEvents: (() => void) | null = null;
+
     constructor(props: CheckerProps) {
         super(props);
 
         const savedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
+        const hasCritiques = supportsCritiques();
+        const hasPopups = hasCritiques && supportsCritiquePopups();
 
         this.state = {
             apiResultsByParagraph: [],
@@ -42,33 +67,151 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
             requestsCounter: 0,
             selectedLanguage: savedLanguage || undefined,
             availableLanguages: [],
+            currentError: null,
+            isOnline: navigator.onLine,
+            hasCritiqueSupport: hasCritiques,
+            hasPopupSupport: hasPopups,
+            activeAnnotationId: null,
         };
     }
 
     async componentWillMount() {
-        const languageOptions = await apiRequestLanguageOptions();
-        const availableLanguages = Object.keys(languageOptions.available.grammar).map((k) => {
-            return {
-                key: k,
-                text: languageOptions.available.grammar[k],
-            };
-        });
+        try {
+            const languageOptions = await apiRequestLanguageOptions();
+            const availableLanguages = Object.keys(languageOptions.available.grammar).map((k) => {
+                return {
+                    key: k,
+                    text: languageOptions.available.grammar[k],
+                };
+            });
+
+            let selectedLanguage = this.state.selectedLanguage;
+            if (!selectedLanguage || selectedLanguage === 'undefined' || availableLanguages.findIndex((l) => l.key === selectedLanguage) < 0) {
+                selectedLanguage = availableLanguages[0].key;
+                saveSettings(SELECTED_LANGUAGE_KEY, selectedLanguage);
+            }
+
+            this.setState({
+                availableLanguages,
+                selectedLanguage,
+                currentError: null,
+            });
+        } catch (error) {
+            const grammarError = error instanceof GrammarCheckError ? error : GrammarCheckError.networkError(error as Error);
+            this.setState({
+                currentError: grammarError,
+                availableLanguages: [],
+            });
+            console.error('Failed to load language options:', grammarError);
+        }
+    }
+
+    componentDidMount() {
+        window.addEventListener('online', this.handleOnline);
+        window.addEventListener('offline', this.handleOffline);
+
+        // Register annotation event handlers if Critique API is available
+        if (this.state.hasCritiqueSupport) {
+            this.cleanupEvents = registerAnnotationEvents({
+                onAnnotationClicked: this.handleAnnotationClicked,
+                onAnnotationPopupAction: this.state.hasPopupSupport
+                    ? this.handleAnnotationPopupAction
+                    : undefined,
+                onAnnotationRemoved: this.handleAnnotationsRemoved,
+            });
+        }
+    }
+
+    componentWillUnmount() {
+        window.removeEventListener('online', this.handleOnline);
+        window.removeEventListener('offline', this.handleOffline);
+
+        if (this.cleanupEvents) {
+            this.cleanupEvents();
+            this.cleanupEvents = null;
+        }
+    }
+
+    // ── Annotation event handlers ────────────────────────────────────
+
+    handleAnnotationClicked = (annotationId: string, meta: AnnotationMeta | undefined) => {
+        if (meta) {
+            this.setState({ activeAnnotationId: annotationId });
+            // Scroll the corresponding error into view in the sidebar
+            const errorElement = document.querySelector(
+                `[data-annotation-id="${annotationId}"]`
+            );
+            if (errorElement) {
+                errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                errorElement.classList.add('annotation-highlight');
+                setTimeout(() => errorElement.classList.remove('annotation-highlight'), 2000);
+            }
+        }
+    }
+
+    handleAnnotationPopupAction = (annotationId: string, action: string, meta: AnnotationMeta | undefined) => {
+        if (!meta) return;
+
+        if (action === 'Accept') {
+            // Word has already applied the replacement. Update our state.
+            handlePopupAccept(annotationId);
+            this.removeGrammarErrror(meta.paragraphIndex, meta.errorIndex);
+            // Re-check this paragraph to pick up new errors
+            this.runGrammarCheck(meta.paragraphIndex);
+        } else if (action === 'Reject') {
+            // User dismissed the suggestion from popup
+            rejectAnnotation(annotationId);
+        }
+    }
+
+    handleAnnotationsRemoved = (annotationIds: string[]) => {
+        // Annotations auto-removed when user edits annotated text.
+        // We could re-check affected paragraphs here, but for now just
+        // let the user re-run the check manually.
+        this.forceUpdate();
+    }
+
+    // ── Network status ───────────────────────────────────────────────
+
+    handleOnline = () => {
         this.setState({
-            availableLanguages,
+            isOnline: true,
+            currentError: this.state.currentError && this.state.currentError.type === 'OFFLINE_ERROR' ? null : this.state.currentError
         });
     }
 
-    startLoading = () => {
+    handleOffline = () => {
         this.setState({
-            loading: true,
+            isOnline: false,
+            currentError: GrammarCheckError.offlineError()
         });
+    }
+
+    handleRetry = () => {
+        this.setState({ currentError: null });
+
+        if (this.state.apiResultsByParagraph.length > 0) {
+            this.runGrammarCheck(-1);
+        } else {
+            this.componentWillMount();
+        }
+    }
+
+    handleDismissError = () => {
+        this.setState({ currentError: null });
+    }
+
+    // ── Loading state ────────────────────────────────────────────────
+
+    startLoading = () => {
+        this.setState({ loading: true });
     }
 
     stopLoading = () => {
-        this.setState({
-            loading: false,
-        });
+        this.setState({ loading: false });
     }
+
+    // ── Data accessors ───────────────────────────────────────────────
 
     getLineText = (lineIndex: number): string => {
         return this.state.apiResultsByParagraph[lineIndex].text;
@@ -102,20 +245,29 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
         });
     }
 
+    // ── Language ──────────────────────────────────────────────────────
+
     changeLanguage = (option: IDropdownOption): void => {
         this.setState({
             selectedLanguage: option.key.toString(),
-            // reset results if you switch language
             apiResultsByParagraph: [],
         }, () => {
             saveSettings(SELECTED_LANGUAGE_KEY, option.key.toString());
         });
+
+        // Clear annotations when switching language
+        if (this.state.hasCritiqueSupport) {
+            Word.run(async (context) => {
+                await removeAllAnnotations(context);
+            });
+        }
     }
+
+    // ── Grammar check ────────────────────────────────────────────────
 
     runGrammarCheckOnWholeText = () => {
         this.setState({
             requestsCounter: this.state.requestsCounter + 1,
-            // reset results if you rerun on whole text
             apiResultsByParagraph: [],
         });
         this.runGrammarCheck(-1);
@@ -148,14 +300,50 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
 
                 let apiResultsByParagraph = this.state.apiResultsByParagraph.concat([]);
 
+                this.setState({ currentError: null });
+
+                // Clear existing annotations for paragraphs we're about to re-check
+                if (this.state.hasCritiqueSupport) {
+                    if (selectedParagraphIndex === -1) {
+                        await removeAllAnnotations(context);
+                    } else {
+                        await removeAnnotationsForParagraph(context, selectedParagraphIndex);
+                    }
+                }
+
                 for (; paragraphIndex < textEndIndex; paragraphIndex++) {
                     const paragraph = paragraphs[paragraphIndex];
-                    const paragraphResults = await apiRequestGrammarCheck(paragraph, language);
 
-                    if (paragraphResults) {
-                        apiResultsByParagraph[paragraphIndex] = paragraphResults;
-                    } else if (apiResultsByParagraph.length > paragraphIndex) {
-                        apiResultsByParagraph = apiResultsByParagraph.splice(paragraphIndex, 1);
+                    try {
+                        const paragraphResults = await apiRequestGrammarCheck(paragraph, language);
+                        if (paragraphResults) {
+                            paragraphResults.errs = filterIgnoredIndividualErrors(paragraphResults.errs);
+                            apiResultsByParagraph[paragraphIndex] = paragraphResults;
+
+                            // Insert critique annotations for this paragraph
+                            if (this.state.hasCritiqueSupport && paragraphResults.errs.length > 0) {
+                                try {
+                                    await insertAnnotationsForParagraph(
+                                        context,
+                                        paragraphIndex,
+                                        paragraphResults.errs,
+                                    );
+                                } catch (annotErr) {
+                                    console.warn('Failed to insert annotations for paragraph', paragraphIndex, annotErr);
+                                    // Non-fatal — sidebar still works
+                                }
+                            }
+                        } else if (apiResultsByParagraph.length > paragraphIndex) {
+                            apiResultsByParagraph = apiResultsByParagraph.splice(paragraphIndex, 1);
+                        }
+                    } catch (error) {
+                        const grammarError = error instanceof GrammarCheckError ? error : GrammarCheckError.networkError(error as Error);
+                        this.setState({ currentError: grammarError });
+                        console.error(`Grammar check failed for paragraph ${paragraphIndex}:`, grammarError);
+
+                        if (!grammarError.retryable) {
+                            break;
+                        }
                     }
                 }
 
@@ -163,12 +351,16 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                     apiResultsByParagraph: apiResultsByParagraph,
                 });
             } catch (e) {
-                console.error(e.message, e.debugInfo);
+                const error = e instanceof GrammarCheckError ? e : GrammarCheckError.networkError(e as Error);
+                this.setState({ currentError: error });
+                console.error('Grammar check failed:', e.message, e.debugInfo);
             } finally {
                 this.stopLoading();
             }
         });
     }
+
+    // ── Highlight / Select ───────────────────────────────────────────
 
     highlight = debounce((lineIndex: number, errorIndex: number, clear: boolean = false) => {
         Word.run(async (context) => {
@@ -184,6 +376,8 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
             }
         });
     }, 150);
+
+    // ── Correct ──────────────────────────────────────────────────────
 
     correct = (paragraphIndex: number, errorIndex: number, suggestionIndex: number) => {
         Word.run(async (context) => {
@@ -222,18 +416,31 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
         });
     }
 
+    // ── Ignore ───────────────────────────────────────────────────────
+
     ignore = (paragraphIndex: number, errorIndex: number) => {
         const error = this.state.apiResultsByParagraph[paragraphIndex].errs[errorIndex];
 
         ignoreIndividualError(error);
 
+        // Remove the annotation for this error if Critique API is available
+        if (this.state.hasCritiqueSupport) {
+            const allMetas = getAllAnnotationMetas();
+            const meta = allMetas.find(
+                (m) => m.paragraphIndex === paragraphIndex && m.errorIndex === errorIndex,
+            );
+            if (meta && meta.annotationId) {
+                rejectAnnotation(meta.annotationId);
+            }
+        }
+
         this.removeGrammarErrror(paragraphIndex, errorIndex);
     }
 
+    // ── Undo ─────────────────────────────────────────────────────────
+
     clearLastCorrectedError = () => {
-        this.setState({
-            lastCorrectedError: null,
-        });
+        this.setState({ lastCorrectedError: null });
     }
 
     undo = () => {
@@ -260,6 +467,8 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
         });
     }
 
+    // ── Render ────────────────────────────────────────────────────────
+
     render() {
         const loadingOverlay = this.state.loading ? (
             <Overlay className='loading-overlay'>
@@ -278,11 +487,25 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
             snackbar = <Snackbar label='Correction implemented' onAction={this.undo} buttonLabel='Undo' />;
         }
 
+        const critiqueStatusText = this.state.hasCritiqueSupport
+            ? (this.state.hasPopupSupport
+                ? 'Inline annotations with popups enabled'
+                : 'Inline annotations enabled')
+            : null;
+
         return <>
+            {/* Network Status Indicator */}
+            {!this.state.isOnline && (
+                <div className="network-status offline">
+                    <span className="network-icon">&#x1F50C;</span>
+                    You are currently offline
+                </div>
+            )}
+
             <div id='toolbar'>
                 <Dropdown
                     placeHolder='Select language'
-                    ariaLabel='Selecte a language from the list'
+                    ariaLabel='Select a language from the list'
                     options={this.state.availableLanguages}
                     selectedKey={this.state.selectedLanguage}
                     onChanged={this.changeLanguage}
@@ -291,14 +514,30 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                 <PrimaryButton
                     onClick={this.runGrammarCheckOnWholeText}
                     ariaDescription='Check grammar'
+                    disabled={!this.state.isOnline || !this.state.selectedLanguage}
                 >
                     Check
                 </PrimaryButton>
             </div>
             <div className='body'>
+                {/* Critique API status indicator */}
+                {critiqueStatusText && this.state.apiResultsByParagraph.length > 0 && (
+                    <div className="critique-status">
+                        <span className="critique-status-dot"></span>
+                        {critiqueStatusText}
+                    </div>
+                )}
+
+                {/* Error Message */}
+                <ErrorMessage
+                    error={this.state.currentError}
+                    onRetry={this.handleRetry}
+                    onDismiss={this.handleDismissError}
+                />
+
                 <ErrorBoundary key={this.state.requestsCounter}>
                     {this.state.apiResultsByParagraph.length == 0 ? (<>
-                        <p>The Divvun Grammar Checker for Word adds support for grammar checking of a number of Sami languages developed by the Divvun Group of the University of Tromsø.</p>
+                        <p>The Divvun Grammar Checker for Word adds support for grammar checking of a number of Sami languages developed by the Divvun Group of the University of Troms&oslash;.</p>
                         <p>Select a language in the language selector and click 'Check' to grammar check the text of your Document</p>
                     </>) : null}
                     <GrammarErrorsList

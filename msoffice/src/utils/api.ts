@@ -1,7 +1,10 @@
-import { IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, filterIgnoredErrorTags, filterIgnoredIndividualErrors, loadSettings, normalizeLineEndings, getUseBetaApi } from '.';
+import { IGNORED_ERROR_TAGS_KEY, SELECTED_LANGUAGE_KEY, getUseBetaApi, loadSettings, normalizeLineEndings } from '.';
+import { GrammarCheckError, RetryOptions, defaultRetryOptions, getRetryDelay } from './errors';
 
-const apiUrl = 'https://api-giellalt.uit.no/';
+const apiUrl = 'https://api.giellalt.org/';
 const betaApiUrl = 'https://beta.api.giellalt.org/';
+
+const DEFAULT_TIMEOUT_MS = 30000; // 30 seconds
 
 export interface APIGrammarError {
     error_text: string;
@@ -17,28 +20,124 @@ interface ApiRequestOptions {
     method: 'GET' | 'POST',
     url: string,
     payload?: Object,
+    timeout?: number,
+    language?: string,
 }
+
 async function apiRequest(options: ApiRequestOptions): Promise<any> {
-    const response = await fetch(options.url, {
-        method: options.method,
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: options.payload ? JSON.stringify(options.payload) : null,
-    });
+    // Check if we're online
+    if (!navigator.onLine) {
+        throw GrammarCheckError.offlineError();
+    }
+
+    const controller = new AbortController();
+    const timeout = options.timeout || DEFAULT_TIMEOUT_MS;
+
+    // Set up timeout
+    const timeoutId = setTimeout(() => {
+        controller.abort();
+    }, timeout);
+
+    const headers = {
+        'Content-Type': 'application/json'
+    }
+
+    if (options.language) {
+        headers['Accept-Language'] = options.language;
+    }
 
     try {
-        const parsedResponse = await response.json();
-        return parsedResponse;
-    } catch (e) {
-        return Promise.reject(e);
+        const response = await fetch(options.url, {
+            method: options.method,
+            headers,
+            body: options.payload ? JSON.stringify(options.payload) : null,
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        // Check if request was successful
+        if (!response.ok) {
+            let errorMessage = response.statusText || 'Unknown error';
+
+            // Try to get error message from response body
+            try {
+                const errorBody = await response.text();
+                if (errorBody) {
+                    const errorData = JSON.parse(errorBody);
+                    errorMessage = errorData.message || errorData.error || errorMessage;
+                }
+            } catch {
+                // Use status text if we can't parse error body
+            }
+
+            throw GrammarCheckError.apiError(response.status, errorMessage);
+        }
+
+        // Parse successful response
+        try {
+            const parsedResponse = await response.json();
+            return parsedResponse;
+        } catch (parseError) {
+            throw GrammarCheckError.parseError(parseError as Error);
+        }
+
+    } catch (error) {
+        clearTimeout(timeoutId);
+
+        // Handle abort (timeout)
+        if (error.name === 'AbortError') {
+            throw GrammarCheckError.timeoutError();
+        }
+
+        // Handle network errors
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+            throw GrammarCheckError.networkError(error);
+        }
+
+        // Re-throw our custom errors
+        if (error instanceof GrammarCheckError) {
+            throw error;
+        }
+
+        // Handle other errors
+        throw GrammarCheckError.networkError(error as Error);
     }
+}
+
+async function sleep(ms: number): Promise<void> {
+    return new Promise<void>(resolve => setTimeout(resolve, ms));
+}
+
+async function apiRequestWithRetry(options: ApiRequestOptions, retryOptions: RetryOptions = defaultRetryOptions): Promise<any> {
+    let lastError: GrammarCheckError;
+
+    for (let attempt = 1; attempt <= retryOptions.maxAttempts; attempt++) {
+        try {
+            return await apiRequest(options);
+        } catch (error) {
+            lastError = error instanceof GrammarCheckError ? error : GrammarCheckError.networkError(error as Error);
+
+            // Don't retry if error is not retryable or this is the last attempt
+            if (!lastError.retryable || attempt === retryOptions.maxAttempts) {
+                throw lastError;
+            }
+
+            // Wait before retry with exponential backoff
+            const delay = getRetryDelay(attempt, retryOptions);
+            console.log(`API request failed (attempt ${attempt}/${retryOptions.maxAttempts}). Retrying in ${delay}ms...`, lastError.message);
+            await sleep(delay);
+        }
+    }
+
+    throw lastError!;
 }
 
 export interface GrammarCheckApiResponse {
     text: string;
     errs: APIGrammarError[];
 }
+
 export async function apiRequestGrammarCheck(text: string, language: string): Promise<GrammarCheckApiResponse>  {
     let payload = {
         text: normalizeLineEndings(text),
@@ -49,26 +148,20 @@ export async function apiRequestGrammarCheck(text: string, language: string): Pr
         payload['ignore'] = ignoredErrorTags.split(',');
     }
 
-    try {
-        const result = await apiRequest({
-            url: `${getCurrentApiUrl()}grammar/${language}`,
-            method: 'POST',
-            payload,
-        }) as GrammarCheckApiResponse;
+    const result = await apiRequestWithRetry({
+        url: `${getCurrentApiUrl()}grammar/${language}`,
+        method: 'POST',
+        payload,
+        language,
+    }) as GrammarCheckApiResponse;
 
-        result.errs = filterIgnoredIndividualErrors(result.errs);
-        result.errs = filterIgnoredErrorTags(result.errs);
-
-        return result;
-    } catch (e) {
-        console.error('Failed to get grammar check API response', e);
-        return Promise.reject();
-    }
+    return result;
 }
 
 export interface GrammarCheckerAvailablePreferences {
     error_tags: { [key: string]: string }
 }
+
 export async function apiRequestGrammarCheckerPreferences(): Promise<GrammarCheckerAvailablePreferences> {
     let selectedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
     if (!selectedLanguage) {
@@ -76,9 +169,10 @@ export async function apiRequestGrammarCheckerPreferences(): Promise<GrammarChec
         selectedLanguage = Object.keys(availableLangs.available.grammar)[0] || '<no_lang>';
     }
 
-    return apiRequest({
+    return await apiRequestWithRetry({
         url: `${getCurrentApiUrl()}${getPreferencesEndpoint(selectedLanguage)}`,
         method: 'GET',
+        language: selectedLanguage,
     });
 }
 
@@ -90,7 +184,7 @@ export interface LanguageOptions {
 }
 
 export async function apiRequestLanguageOptions(): Promise<LanguageOptions> {
-    return apiRequest({
+    return await apiRequestWithRetry({
         url: `${getCurrentApiUrl()}languages`,
         method: 'GET',
     });
@@ -101,7 +195,5 @@ function getCurrentApiUrl(): string {
 }
 
 function getPreferencesEndpoint(language: string): string {
-    return getUseBetaApi()
-        ? `grammar/${language}/preferences`
-        : `preferences/grammar/${language}`;
+    return `grammar/${language}/preferences`
 }

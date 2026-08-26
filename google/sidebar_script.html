@@ -3,6 +3,52 @@
     let lastOperation = null;
     let currentError = null;
 
+    // ── localStorage cache ───────────────────────────────────────────
+
+    const LS_PREFIX = 'gramcheck_';
+
+    function lsGet(key) {
+        try { return localStorage.getItem(LS_PREFIX + key); } catch (_) { return null; }
+    }
+
+    function lsSet(key, value) {
+        try { localStorage.setItem(LS_PREFIX + key, value); } catch (_) {}
+    }
+
+    function getCachedSettings() {
+        return {
+            selectedLanguage: lsGet('selectedLanguage') || null,
+            useBetaApi: lsGet('useBetaApi') === 'true',
+            ignoredTags: (function () {
+                try { return JSON.parse(lsGet('ignoredTags') || '[]'); }
+                catch (_) { return []; }
+            })(),
+        };
+    }
+
+    function cacheSettings(data) {
+        if (data.selectedLanguage) lsSet('selectedLanguage', data.selectedLanguage);
+        lsSet('useBetaApi', String(data.useBetaApi));
+        lsSet('ignoredTags', JSON.stringify(data.ignoredTags));
+    }
+
+    // ── Background loading indicator ─────────────────────────────────
+
+    function showBgLoading() {
+        $('#bg-loading').addClass('visible');
+        $('#open-preferences').hide();
+    }
+    function hideBgLoading() {
+        $('#bg-loading').removeClass('visible');
+        $('#open-preferences').show();
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────
+
+    // Promise that resolves when background GAS settings sync is done.
+    // openPreferences waits on this if it fires before sync completes.
+    let initDataReady = null;
+
     $(function () {
         $('#run-check').on("click", runGrammarCheck);
         $('#open-preferences').on("click", openPreferences);
@@ -10,21 +56,88 @@
         $('#error-retry').on("click", handleRetry);
         $('#error-dismiss').on("click", handleDismissError);
 
-        setLoading(true)
-        refreshLanguagesList(function () {
-            loadSettings(function() {
-                setLoading(false)
-            });
+        // Event delegation for dynamically rendered elements
+        $('#results').on('click', '.error-header', function () {
+            $(this).closest('.grammar-error').toggleClass('expanded');
         });
+        $('#results').on('click', '.ignore-btn', handleIgnore);
+
+        initSidebar();
     });
+
+    async function initSidebar() {
+        lastOperation = 'init';
+
+        // 1. Read cached/default settings immediately (sync, <1ms)
+        const cached = getCachedSettings();
+        setApiBaseUrl(cached.useBetaApi);
+        ignoredTags = cached.ignoredTags;
+
+        // 2. Fire language fetch immediately (client-side, ~200ms)
+        const langPromise = fetchLanguageOptions();
+
+        // 3. Fire GAS settings sync in background (1-3s, non-blocking)
+        showBgLoading();
+        initDataReady = gasRun('getInitData').then(function (initData) {
+            cacheSettings(initData);
+            ignoredTags = initData.ignoredTags;
+
+            // If useBetaApi differs from what we used, fix it
+            if (initData.useBetaApi !== cached.useBetaApi) {
+                setApiBaseUrl(initData.useBetaApi);
+                // Re-fetch languages from the correct API
+                return fetchLanguageOptions().then(function (langData) {
+                    populateLanguageDropdown(langData, initData.selectedLanguage);
+                });
+            }
+
+            // If selected language changed, update dropdown
+            if (initData.selectedLanguage && initData.selectedLanguage !== cached.selectedLanguage) {
+                $('select[name="language"]').val(initData.selectedLanguage);
+                lsSet('selectedLanguage', initData.selectedLanguage);
+            }
+        }).catch(function (e) {
+            // Background sync failed — cached values are fine, don't block user
+            console.warn('Background settings sync failed:', e);
+        }).finally(function () {
+            hideBgLoading();
+        });
+
+        // 4. Populate dropdown from initial language fetch
+        try {
+            const langData = await langPromise;
+            populateLanguageDropdown(langData, cached.selectedLanguage);
+            hideError();
+        } catch (e) {
+            if (e && e.userMessage) {
+                displayTypedError(e);
+            } else {
+                showError(e, $('#button-bar'));
+            }
+        }
+    }
+
+    function populateLanguageDropdown(langData, selectedLanguage) {
+        const select = $('select[name="language"]');
+        select.empty();
+        const languages = langData.available.grammar;
+        for (const lang in languages) {
+            select.append(new Option(languages[lang], lang));
+        }
+        if (selectedLanguage) {
+            select.val(selectedLanguage);
+        }
+    }
+
+    // ── Error display ────────────────────────────────────────────────
 
     function getErrorIcon(errorType) {
         switch (errorType) {
-            case 'NETWORK_ERROR': return '🔌';
-            case 'TIMEOUT_ERROR': return '⏱️';
-            case 'API_ERROR': return '⚠️';
-            case 'PARSE_ERROR': return '❌';
-            default: return '⚠️';
+            case 'NETWORK_ERROR': return '\uD83D\uDD0C';
+            case 'TIMEOUT_ERROR': return '\u23F1\uFE0F';
+            case 'API_ERROR': return '\u26A0\uFE0F';
+            case 'PARSE_ERROR': return '\u274C';
+            default: return '\u26A0\uFE0F';
         }
     }
 
@@ -37,12 +150,10 @@
         currentError = error;
         const container = $('#error-container');
 
-        // Set appropriate styling based on retryable status
         container.removeClass('error-retryable error-fatal visible');
         container.addClass(error.retryable ? 'error-retryable' : 'error-fatal');
         container.addClass('visible');
 
-        // Set content
         container.find('.error-icon').text(getErrorIcon(error.type));
         container.find('.error-user-message').text(error.userMessage);
 
@@ -52,7 +163,6 @@
             container.find('.error-code').hide();
         }
 
-        // Show/hide retry button based on retryable status
         if (error.retryable) {
             $('#error-retry').show();
         } else {
@@ -70,13 +180,8 @@
 
         if (lastOperation === 'grammarCheck') {
             runGrammarCheck();
-        } else if (lastOperation === 'loadLanguages') {
-            setLoading(true);
-            refreshLanguagesList(function() {
-                loadSettings(function() {
-                    setLoading(false);
-                });
-            });
+        } else if (lastOperation === 'init') {
+            initSidebar();
         }
     }
 
@@ -84,172 +189,413 @@
         hideError();
     }
 
+    // ── Ignore handler ───────────────────────────────────────────────
+
+    function handleIgnore() {
+        const card = $(this).closest('.grammar-error');
+        const errorCode = card.attr('data-error-code');
+        const errorText = card.attr('data-error-text');
+        const key = makeIgnoreKey(errorCode, errorText);
+
+        // Save to localStorage
+        const ignored = loadIgnoredErrors();
+        if (ignored.indexOf(key) === -1) {
+            ignored.push(key);
+            saveIgnoredErrors(ignored);
+        }
+
+        // Remove document markers for ALL matching cards
+        $('#results .grammar-error').each(function () {
+            const $card = $(this);
+            if ($card.attr('data-error-code') === errorCode && $card.attr('data-error-text') === errorText) {
+                // Remove the document highlight/named range for this error
+                const rangeId = $card.attr('data-range-id');
+                if (rangeId) {
+                    google.script.run.removeErrorMarker(rangeId);
+                }
+                $card.slideUp(250, function () { $card.remove(); });
+            }
+        });
+    }
+
+    // ── Language selection ────────────────────────────────────────────
+
     function selectedLanguageChanged() {
         const lang = $('select[name="language"] option:selected').val();
-        setLoading(true)
 
+        // Cache immediately
+        lsSet('selectedLanguage', lang);
+
+        // Clear results and document markers
         $('#error').remove();
-        $('#results').html("")
+        $('#results').html('');
+        google.script.run.clearAllErrorMarkers();
 
+        // Fire-and-forget GAS save (no loading spinner)
         google.script.run
-            .withSuccessHandler(function() {
-                setLoading(false)
+            .withFailureHandler(function (msg) {
+                console.warn('Failed to save language preference:', msg);
             })
-            .withFailureHandler(function(msg, element) {
-                showError(msg, element);
-                setLoading(false)
-            })
-            .withUserObject(this)
             .changeLanguage(lang);
-
     }
 
-    function loadSettings(onSuccess, onFailure) {
-        const select = $('select[name="language"]')
-        google.script.run
-            .withSuccessHandler(
-                function (result, element) {
-                    element.val(result)
-                    if (onSuccess)
-                        onSuccess()
-                })
-            .withFailureHandler(onFailure)
-            .withUserObject(select)
-            .getSelectedLanguage();
-    }
+    // ── Preferences ──────────────────────────────────────────────────
 
-    function refreshLanguagesList(onSuccess, onFailure) {
-        lastOperation = 'loadLanguages';
-        const select = $('select[name="language"]')
+    async function openPreferences() {
+        // If background init hasn't finished, wait for it so preferences
+        // dialog has accurate data in localStorage
+        if (initDataReady) {
+            showBgLoading();
+            await initDataReady;
+            hideBgLoading();
+        }
+
         google.script.run
-            .withSuccessHandler(
-                function (result, element) {
-                    const languages = result.available.grammar
-                    element.empty()
-                    for (const lang in languages) {
-                        element.append(new Option(languages[lang], lang))
-                    }
-                    hideError();
-                    if (onSuccess)
-                        onSuccess()
-                })
-            .withFailureHandler(function(msg, element) {
-                setLoading(false);
-                // Handle error object or plain message
-                if (msg && typeof msg === 'object' && msg.userMessage) {
-                    displayTypedError(msg);
-                } else {
-                    showError(msg, $('#button-bar'));
+            .withSuccessHandler(function () {
+                // Dialog closed — read updated values from localStorage
+                const updated = getCachedSettings();
+                const oldUseBeta = (apiBaseUrl === BETA_API_URL);
+
+                setApiBaseUrl(updated.useBetaApi);
+                ignoredTags = updated.ignoredTags;
+
+                // If beta API setting changed, re-fetch language list
+                if (updated.useBetaApi !== oldUseBeta) {
+                    fetchLanguageOptions().then(function (langData) {
+                        populateLanguageDropdown(langData, updated.selectedLanguage);
+                    }).catch(function (e) {
+                        console.warn('Failed to refresh language list:', e);
+                    });
                 }
-                if (onFailure)
-                    onFailure(msg, element);
             })
-            .withUserObject(select)
-            .apiRequestLanguageOptions();
-    }
-
-    function openPreferences() {
-        setLoading(true)
-        google.script.run
-            .withSuccessHandler(function() {
-                setLoading(false)
+            .withFailureHandler(function (msg) {
+                showError(msg, $('#button-bar'));
             })
-            .withFailureHandler(
-                function (msg) {
-                    setLoading(false)
-                    showError(msg, $('#button-bar'));
-                })
             .showPreferences();
     }
 
-    function runGrammarCheck() {
-        setLoading(true)
+    // ── Grammar check (client-side API calls, progressive rendering) ─
+
+    function clipContextText(paragraph, errorText, startIndex) {
+        if (errorText.indexOf('.') === 0) {
+            paragraph = '.' + paragraph;
+        }
+        if (errorText.lastIndexOf('.') > -1) {
+            paragraph += '.';
+        }
+        const errorTextPos = paragraph.indexOf(errorText, startIndex);
+        if (errorTextPos > -1) {
+            let cutStartIndex = paragraph.substring(0, errorTextPos - 1).lastIndexOf(' ');
+            if (cutStartIndex < 0) {
+                cutStartIndex = 0;
+            }
+            let cutEndIndex = paragraph.indexOf(' ', errorTextPos + errorText.length + 1);
+            if (cutEndIndex < 0) {
+                cutEndIndex = paragraph.length;
+            }
+            return paragraph.substring(cutStartIndex, cutEndIndex);
+        }
+        return paragraph;
+    }
+
+    function getHighlightError(paragraph, errorText, startIndex) {
+        const context = clipContextText(paragraph, errorText, startIndex);
+        const escapedContext = escapeHtml(context);
+        const escapedError = escapeHtml(errorText);
+        return escapedContext.replace(escapedError, '<i>' + escapedError + '</i>');
+    }
+
+    // ── Ignored errors (localStorage) ───────────────────────────────
+
+    function loadIgnoredErrors() {
+        try { return JSON.parse(lsGet('ignoredErrors') || '[]'); }
+        catch (_) { return []; }
+    }
+
+    function saveIgnoredErrors(arr) {
+        lsSet('ignoredErrors', JSON.stringify(arr));
+    }
+
+    function makeIgnoreKey(errorCode, errorText) {
+        return errorCode + ':' + errorText;
+    }
+
+    function isErrorIgnored(errorCode, errorText) {
+        const ignored = loadIgnoredErrors();
+        return ignored.indexOf(makeIgnoreKey(errorCode, errorText)) > -1;
+    }
+
+    // ── Build results HTML ───────────────────────────────────────────
+
+    function buildResultsHtml(apiResult, paragraphIndex) {
+        const errs = apiResult.errs;
+        if (!errs || errs.length === 0) {
+            return { html: '', errorPositions: [] };
+        }
+
+        // Filter out ignored errors
+        const ignoredErrors = loadIgnoredErrors();
+        const filteredErrs = errs.filter(function (e) {
+            return ignoredErrors.indexOf(makeIgnoreKey(e.error_code, e.error_text)) === -1;
+        });
+
+        if (filteredErrs.length === 0) {
+            return { html: '', errorPositions: [] };
+        }
+
+        // Collect error positions for document highlighting
+        const errorPositions = filteredErrs.map(function (e) {
+            return {
+                paragraphIndex: paragraphIndex,
+                startOffset: e.start_index,
+                endOffsetInclusive: e.end_index - 1,
+                errorCode: e.error_code,
+                errorText: e.error_text,
+            };
+        });
+
+        let html = '<div class="grammar-errors-list">';
+        for (let i = 0; i < filteredErrs.length; i++) {
+            const e = filteredErrs[i];
+            const contextText = getHighlightError(apiResult.text, e.error_text, e.start_index);
+
+            const hasDistinctTitle = e.title && e.title !== e.description;
+
+            // data-error-pos-idx tracks position in the errorPositions array
+            // for correlating with named range IDs returned by applyErrorMarkers
+            html += '<div class="grammar-error"'
+                + ' data-error-text="' + escapeAttr(e.error_text) + '"'
+                + ' data-error-index="' + e.start_index + '"'
+                + ' data-error-paragraph-index="' + paragraphIndex + '"'
+                + ' data-error-code="' + escapeAttr(e.error_code) + '"'
+                + ' data-error-pos-idx="' + i + '"'
+                + ' data-range-id=""'
+                + '>';
+
+            // Header with title + chevron (or just description if no distinct title)
+            if (hasDistinctTitle) {
+                html += '<div class="error-header">'
+                    + '<span class="error-title">' + escapeHtml(e.title) + '</span>'
+                    + '<span class="error-chevron">\u25BE</span>'
+                    + '</div>';
+                html += '<div class="error-description">' + escapeHtml(e.description) + '</div>';
+            } else {
+                html += '<div class="reason">' + escapeHtml(e.description || e.title || '') + '</div>';
+            }
+
+            html += '<div class="context">' + contextText + '</div>';
+
+            if (e.suggestions.length > 0) {
+                html += '<div class="suggestions-area">';
+                html += '<div class="suggestions-heading-row">'
+                    + '<span class="suggestions-heading">Suggested corrections</span>'
+                    + '<button class="ignore-btn" title="Ignore this error">Ignore</button>'
+                    + '</div>';
+                html += '<div class="suggestions-list">';
+                for (let j = 0; j < e.suggestions.length; j++) {
+                    html += '<div class="suggestion"'
+                        + ' data-error-text="' + escapeAttr(e.error_text) + '"'
+                        + ' data-error-index="' + e.start_index + '"'
+                        + ' data-correction="' + escapeAttr(e.suggestions[j]) + '"'
+                        + ' data-error-paragraph-index="' + paragraphIndex + '"'
+                        + '>' + escapeHtml(e.suggestions[j]) + '</div>';
+                }
+                html += '</div>';
+                html += '</div>';
+            } else {
+                // No suggestions — still show ignore button
+                html += '<div class="suggestions-area">';
+                html += '<div class="suggestions-heading-row">'
+                    + '<button class="ignore-btn" title="Ignore this error">Ignore</button>'
+                    + '</div>';
+                html += '</div>';
+            }
+
+            html += '</div>';
+        }
+        html += '</div>';
+        return { html: html, errorPositions: errorPositions };
+    }
+
+    async function runGrammarCheck() {
+        const btn = $('#run-check');
+        btn.prop('disabled', true);
+        btn.text('Getting paragraphs\u2026');
         hideError();
+        $('#error').remove();
         lastOperation = 'grammarCheck';
 
         const lang = $('select[name="language"] option:selected').val();
-        google.script.run
-            .withSuccessHandler(
-                function (result, element) {
-                    setLoading(false)
+        const resultsContainer = $('#results');
+        resultsContainer.html('');
 
-                    // Handle structured response
-                    if (result && typeof result === 'object') {
-                        $('#results').html(result.html);
+        try {
+            // Clear existing document markers before re-checking
+            await gasRun('clearAllErrorMarkers');
 
-                        // Display error if present
-                        if (result.error) {
-                            displayTypedError(result.error);
+            // Single GAS call — get paragraph texts from document
+            const paragraphs = await gasRun('getParagraphs');
+
+            btn.text('Checking grammar\u2026');
+
+            // Create ordered placeholder divs for each paragraph
+            for (let i = 0; i < paragraphs.length; i++) {
+                resultsContainer.append('<div id="paragraph-results-' + i + '"></div>');
+            }
+
+            // Collect all error positions for batch highlighting
+            let allErrorPositions = [];
+            // Map: { paragraphIndex -> [{posIdx, cardSelector}] } for linking range IDs to cards
+            const positionsByParagraph = {};
+
+            // Check each paragraph client-side, concurrency=3, progressive rendering
+            let hasAnyErrors = false;
+
+            const outcome = await pMapProgressive(
+                paragraphs,
+                function (text, idx) {
+                    return fetchGrammarCheck(lang, text, ignoredTags);
+                },
+                3,
+                function (apiResult, idx) {
+                    // onResult: render into the correct placeholder (maintains order)
+                    const result = buildResultsHtml(apiResult, idx);
+                    if (result.html) {
+                        hasAnyErrors = true;
+                        const placeholder = $('#paragraph-results-' + idx);
+                        placeholder.html(result.html);
+                        // Bind event handlers on the newly rendered elements
+                        placeholder.find('.suggestion').on('click', runCorrection);
+                        placeholder.find('.grammar-error')
+                            .on('mouseenter', highlightError)
+                            .on('mouseleave', clearHighlight);
+
+                        // Track positions for batch highlighting
+                        allErrorPositions = allErrorPositions.concat(result.errorPositions);
+                        positionsByParagraph[idx] = result.errorPositions;
+                    }
+                }
+            );
+
+            // Apply document highlighting + named ranges in a single GAS call
+            if (allErrorPositions.length > 0) {
+                try {
+                    const rangeIds = await gasRun('applyErrorMarkers', allErrorPositions);
+                    // Map range IDs back to the corresponding error cards
+                    let globalIdx = 0;
+                    for (const paraIdx in positionsByParagraph) {
+                        const positions = positionsByParagraph[paraIdx];
+                        const placeholder = $('#paragraph-results-' + paraIdx);
+                        for (let i = 0; i < positions.length; i++) {
+                            const rangeId = rangeIds[globalIdx] || '';
+                            // Find the card by its position index within this paragraph
+                            const card = placeholder.find('.grammar-error[data-error-pos-idx="' + i + '"]');
+                            card.attr('data-range-id', rangeId);
+                            globalIdx++;
                         }
-                    } else {
-                        // Legacy: plain HTML string response
-                        $('#results').html(result);
                     }
+                } catch (markerErr) {
+                    console.warn('Failed to apply document markers:', markerErr);
+                    // Non-fatal — sidebar still works without highlights
+                }
+            }
 
-                    $('.suggestion').on("click", runCorrection);
-                    $('.grammar-error').on("mouseenter", highlightError).on("mouseleave", clearHighlight);
-                })
-            .withFailureHandler(
-                function (msg, element) {
-                    setLoading(false)
-                    // Handle error object or plain message
-                    if (msg && typeof msg === 'object' && msg.userMessage) {
-                        displayTypedError(msg);
-                    } else {
-                        showError(msg, $('#button-bar'));
-                    }
-                })
-            .withUserObject(this)
-            .runGrammarCheckOnWholeText(lang);
+            // Handle any API errors that occurred during processing
+            if (outcome.errors.length > 0) {
+                const lastErr = outcome.errors[outcome.errors.length - 1].error;
+                displayTypedError(lastErr);
+            }
+
+            if (!hasAnyErrors && outcome.errors.length === 0) {
+                resultsContainer.html(
+                    '<div class="no-errors-message">No grammar errors found. To review your ignored error types, click the gear icon in the top right.</div>'
+                );
+            }
+
+        } catch (e) {
+            if (e && e.userMessage) {
+                displayTypedError(e);
+            } else {
+                showError(e, $('#button-bar'));
+            }
+        } finally {
+            btn.text('Check grammar');
+            btn.prop('disabled', false);
+        }
     }
 
-    function runCorrection() {
-        const errorText = $(this).attr('data-error-text');
-        const errorIndex = $(this).attr('data-error-index');
-        const errorParagraphIndex = $(this).attr('data-error-paragraph-index');
-        const correction = $(this).attr('data-correction');
-        const parentIndex = $(this).attr('data-parent-index');
-        const parent = $(this).closest('.grammar-error');
+    // ── Document interactions (GAS calls — use DocumentApp) ───────────
 
-        setLoading(true)
+    function runCorrection() {
+        const $el = $(this);
+        const correction = $el.attr('data-correction');
+        const parent = $el.closest('.grammar-error');
+        const rangeId = parent.attr('data-range-id');
+
+        const btn = $('#run-check');
+        btn.prop('disabled', true);
+
+        if (rangeId) {
+            // Use named range for precise correction (survives user edits)
+            google.script.run
+                .withSuccessHandler(function () {
+                    parent.slideUp(300, function () {
+                        parent.remove();
+                        runGrammarCheck();
+                    });
+                    btn.prop('disabled', false);
+                })
+                .withFailureHandler(function (message) {
+                    // Fall back to text-search correction
+                    console.warn('Range-based correction failed, falling back:', message);
+                    runCorrectionFallback($el, parent, btn);
+                })
+                .runCorrectionByRange(rangeId, correction);
+        } else {
+            // Fallback: text-search correction (no named range available)
+            runCorrectionFallback($el, parent, btn);
+        }
+    }
+
+    function runCorrectionFallback($el, parent, btn) {
+        const errorText = $el.attr('data-error-text');
+        const errorIndex = parseInt($el.attr('data-error-index'), 10);
+        const errorParagraphIndex = parseInt($el.attr('data-error-paragraph-index'), 10);
+        const correction = $el.attr('data-correction');
+
         google.script.run
             .withSuccessHandler(function () {
                 parent.slideUp(300, function () {
-                    runGrammarCheck();
                     parent.remove();
+                    runGrammarCheck();
                 });
-                setLoading(false)
+                btn.prop('disabled', false);
             })
             .withFailureHandler(function (message) {
-                showError(message, this);
-                setLoading(false)
+                showError(message, $('#button-bar'));
+                btn.prop('disabled', false);
             })
-            .withUserObject(this)
             .runCorrection(errorText, correction, errorIndex, errorParagraphIndex);
     }
 
     function highlightError() {
-        const errorText = $(this).attr('data-error-text');
-        const errorIndex = $(this).attr('data-error-index');
-        const errorParagraphIndex = $(this).attr('data-error-paragraph-index');
+        const $el = $(this);
+        const rangeId = $el.attr('data-range-id');
 
-        google.script.run
-            .highlightError(errorText, errorIndex, errorParagraphIndex);
+        if (rangeId) {
+            // Use named range for precise highlighting
+            google.script.run.highlightErrorByRange(rangeId);
+        } else {
+            // Fallback: text-search highlighting
+            const errorText = $el.attr('data-error-text');
+            const errorIndex = parseInt($el.attr('data-error-index'), 10);
+            const errorParagraphIndex = parseInt($el.attr('data-error-paragraph-index'), 10);
+            google.script.run.highlightError(errorText, errorIndex, errorParagraphIndex);
+        }
     }
 
     function clearHighlight() {
-        google.script.run
-            .clearHighlight();
+        google.script.run.clearHighlight();
     }
 
-    function setLoading(loading) {
-        const sidebar = $(".sidebar")
-        if (loading) {
-            showLoading()
-            disableAll(sidebar)
-        } else {
-            hideLoading()
-            enableAll(sidebar)
-        }
-    }
 </script>

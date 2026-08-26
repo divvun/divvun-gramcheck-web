@@ -1,0 +1,317 @@
+<script>
+    /**
+     * Client-side API module for grammar checking.
+     * Makes HTTP requests directly from the sidebar iframe using fetch(),
+     * bypassing the google.script.run overhead (1-3s per call).
+     *
+     * CORS is supported by api.giellalt.org (reflects Origin header).
+     *
+     * Requires API_URL and BETA_API_URL to be defined before this script loads
+     * (injected by the parent template via GAS template tags).
+     */
+
+    // Mutable state — updated from GAS init data
+    let apiBaseUrl = API_URL;
+    let ignoredTags = [];
+
+    function setApiBaseUrl(useBeta) {
+        apiBaseUrl = useBeta ? BETA_API_URL : API_URL;
+    }
+
+    // ── Error types ──────────────────────────────────────────────────────
+
+    const ErrorType = Object.freeze({
+        NETWORK_ERROR: 'NETWORK_ERROR',
+        API_ERROR: 'API_ERROR',
+        TIMEOUT_ERROR: 'TIMEOUT_ERROR',
+        PARSE_ERROR: 'PARSE_ERROR',
+    });
+
+    function createGrammarCheckError(details) {
+        return {
+            type: details.type,
+            message: details.message,
+            userMessage: details.userMessage,
+            statusCode: details.statusCode || null,
+            retryable: details.retryable,
+        };
+    }
+
+    function createNetworkError(originalMessage) {
+        return createGrammarCheckError({
+            type: ErrorType.NETWORK_ERROR,
+            message: 'Network error: ' + originalMessage,
+            userMessage: 'Unable to connect to grammar checking service. Please check your internet connection.',
+            retryable: true,
+        });
+    }
+
+    function createTimeoutError() {
+        return createGrammarCheckError({
+            type: ErrorType.TIMEOUT_ERROR,
+            message: 'Request timed out',
+            userMessage: 'The request took too long to complete. Please try again.',
+            retryable: true,
+        });
+    }
+
+    function createApiError(statusCode, message) {
+        const userMessages = {
+            400: 'Invalid request. Please try with different text.',
+            401: 'Authentication failed. Please refresh and try again.',
+            403: 'Access denied. You may not have permission to use this service.',
+            404: 'Grammar checking service not found. The selected language may not be supported.',
+            429: 'Too many requests. Please wait a moment and try again.',
+            500: 'Grammar checking service is experiencing issues. Please try again later.',
+            502: 'Gateway error. The service is temporarily unavailable.',
+            503: 'Service temporarily unavailable. Please try again later.',
+        };
+        return createGrammarCheckError({
+            type: ErrorType.API_ERROR,
+            message: 'API error ' + statusCode + ': ' + message,
+            userMessage: userMessages[statusCode] || 'An error occurred while checking grammar. Please try again.',
+            statusCode: statusCode,
+            retryable: statusCode >= 500 || statusCode === 429,
+        });
+    }
+
+    function createParseError(originalMessage) {
+        return createGrammarCheckError({
+            type: ErrorType.PARSE_ERROR,
+            message: 'Failed to parse response: ' + originalMessage,
+            userMessage: 'Received invalid response from grammar checking service. Please try again.',
+            retryable: true,
+        });
+    }
+
+    // ── Retry logic ──────────────────────────────────────────────────────
+
+    const RETRY_MAX_ATTEMPTS = 3;
+    const RETRY_BASE_DELAY_MS = 1000;
+    const RETRY_MAX_DELAY_MS = 10000;
+
+    function getRetryDelay(attempt) {
+        const exponentialDelay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+        const jitter = Math.random() * 0.1 * exponentialDelay;
+        return Math.min(exponentialDelay + jitter, RETRY_MAX_DELAY_MS);
+    }
+
+    function isRetryableStatusCode(statusCode) {
+        return statusCode >= 500 || statusCode === 429;
+    }
+
+    function sleep(ms) {
+        return new Promise(function (resolve) { setTimeout(resolve, ms); });
+    }
+
+    /**
+     * Fetch with automatic retry on retryable errors.
+     * @param {string} url
+     * @param {RequestInit} options
+     * @param {number} [maxAttempts]
+     * @returns {Promise<any>} parsed JSON response
+     * @throws {GrammarCheckErrorData} on non-retryable or exhausted retries
+     */
+    async function fetchWithRetry(url, options, maxAttempts) {
+        maxAttempts = maxAttempts || RETRY_MAX_ATTEMPTS;
+        let lastError = null;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                const response = await fetch(url, options);
+                const statusCode = response.status;
+
+                if (statusCode >= 200 && statusCode < 300) {
+                    try {
+                        return await response.json();
+                    } catch (parseErr) {
+                        lastError = createParseError(parseErr.message || String(parseErr));
+                        if (attempt < maxAttempts) {
+                            await sleep(getRetryDelay(attempt));
+                            continue;
+                        }
+                        throw lastError;
+                    }
+                }
+
+                // Error status code
+                let responseText = '';
+                try { responseText = await response.text(); } catch (_) {}
+                lastError = createApiError(statusCode, responseText);
+
+                if (isRetryableStatusCode(statusCode) && attempt < maxAttempts) {
+                    await sleep(getRetryDelay(attempt));
+                    continue;
+                }
+
+                throw lastError;
+
+            } catch (e) {
+                // If it's already a structured error, rethrow
+                if (e && e.type && e.userMessage) {
+                    throw e;
+                }
+
+                // Network/fetch error
+                lastError = createNetworkError(e.message || 'Unknown error');
+
+                if (attempt < maxAttempts) {
+                    await sleep(getRetryDelay(attempt));
+                    continue;
+                }
+
+                throw lastError;
+            }
+        }
+
+        throw lastError || createNetworkError('Request failed after all retry attempts');
+    }
+
+    // ── Concurrency-limited parallel map ─────────────────────────────────
+
+    /**
+     * Run an async function over an array with a concurrency limit.
+     * Results are returned in input order.
+     * @param {Array} items
+     * @param {Function} fn - async function(item, index) => result
+     * @param {number} concurrency - max concurrent calls
+     * @returns {Promise<Array>} results in same order as items
+     */
+    function pMap(items, fn, concurrency) {
+        return new Promise(function (resolve, reject) {
+            const results = new Array(items.length);
+            let nextIndex = 0;
+            let active = 0;
+            let settled = false;
+
+            function runNext() {
+                if (settled) return;
+                if (nextIndex >= items.length && active === 0) {
+                    settled = true;
+                    resolve(results);
+                    return;
+                }
+
+                while (active < concurrency && nextIndex < items.length) {
+                    const idx = nextIndex++;
+                    active++;
+                    fn(items[idx], idx)
+                        .then(function (result) {
+                            results[idx] = result;
+                            active--;
+                            runNext();
+                        })
+                        .catch(function (err) {
+                            if (!settled) {
+                                settled = true;
+                                reject(err);
+                            }
+                        });
+                }
+            }
+
+            if (items.length === 0) {
+                resolve([]);
+            } else {
+                runNext();
+            }
+        });
+    }
+
+    /**
+     * Like pMap but calls onResult(result, index) as each item completes.
+     * Does NOT stop on first error — collects errors and continues.
+     * Returns { results, errors } where errors is an array of {index, error}.
+     */
+    function pMapProgressive(items, fn, concurrency, onResult) {
+        return new Promise(function (resolve) {
+            const results = new Array(items.length);
+            const errors = [];
+            let nextIndex = 0;
+            let completed = 0;
+            let active = 0;
+
+            function runNext() {
+                if (completed >= items.length) {
+                    resolve({ results: results, errors: errors });
+                    return;
+                }
+
+                while (active < concurrency && nextIndex < items.length) {
+                    const idx = nextIndex++;
+                    active++;
+                    fn(items[idx], idx)
+                        .then(function (result) {
+                            results[idx] = result;
+                            if (onResult) onResult(result, idx);
+                        })
+                        .catch(function (err) {
+                            errors.push({ index: idx, error: err });
+                            // For non-retryable errors, we still continue with other paragraphs
+                        })
+                        .finally(function () {
+                            active--;
+                            completed++;
+                            runNext();
+                        });
+                }
+            }
+
+            if (items.length === 0) {
+                resolve({ results: [], errors: [] });
+            } else {
+                runNext();
+            }
+        });
+    }
+
+    // ── API functions ────────────────────────────────────────────────────
+
+    /**
+     * Fetch available languages.
+     * @returns {Promise<{available: {grammar: Object, speller: Object}}>}
+     */
+    function fetchLanguageOptions() {
+        return fetchWithRetry(apiBaseUrl + 'languages', { method: 'GET' });
+    }
+
+    /**
+     * Run grammar check on a single paragraph.
+     * @param {string} lang - language code
+     * @param {string} text - paragraph text
+     * @param {string[]} ignoreTags - tags to ignore
+     * @returns {Promise<{text: string, errs: Array}>}
+     */
+    function fetchGrammarCheck(lang, text, ignoreTags) {
+        const payload = { text: text.replace(/\r\n/g, '\n').replace(/\r/g, '\n') };
+        if (ignoreTags && ignoreTags.length > 0 && ignoreTags[0] !== '') {
+            payload.ignore = ignoreTags;
+        }
+        return fetchWithRetry(apiBaseUrl + 'grammar/' + lang, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+    }
+
+    /**
+     * Fetch grammar checker preferences (error tag descriptions).
+     * @param {string} lang - language code
+     * @returns {Promise<{error_tags: Object}>}
+     */
+    function fetchPreferences(lang) {
+        return fetchWithRetry(apiBaseUrl + 'grammar/' + lang + '/preferences', { method: 'GET' });
+    }
+
+    // ── Helper: wrap google.script.run as a Promise ──────────────────────
+
+    function gasRun(fnName) {
+        const args = Array.prototype.slice.call(arguments, 1);
+        return new Promise(function (resolve, reject) {
+            const runner = google.script.run
+                .withSuccessHandler(resolve)
+                .withFailureHandler(reject);
+            runner[fnName].apply(runner, args);
+        });
+    }
+</script>

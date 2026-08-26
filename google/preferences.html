@@ -4,7 +4,7 @@
 <head>
     <base target="_top">
     <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
-    <!-- The CSS package above applies Google styling to buttons and other elements. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap">
 
     <?!= include("style") ?>
 </head>
@@ -15,19 +15,19 @@
             <form>
                 <h2>Error types</h2>
                 <p>Select the types of errors the grammar checker should warn you about.</p>
-                <? for (let i = 0; i < errorTags.length; i++) { ?>
-                <input name="ignoredTag" type="checkbox" <?!= errorTags[i].ignored ? "" : "checked" ?>
-                    value="<?= errorTags[i].tag ?>">
-                <?= errorTags[i].name ?>
-                </input><br/>
-                <? } ?>
+                <div id="error-tags-list">
+                    <div class="loading-container"><div class="lds-dual-ring"></div></div>
+                    <div class="loading-container">Loading preferences...</div>
+                </div>
 
                 <h2>API Settings</h2>
-                <input name="useBetaApi" type="checkbox" <?!= useBetaApi ? "checked" : "" ?>>
+                <input name="useBetaApi" type="checkbox" id="useBetaApi">
                 Use Beta API
                 </input><br/>
             </form>
         </div>
+
+        <div id="error-area"></div>
 
         <div class="block" id="button-bar">
             <button class="blue" id="save">Save</button>
@@ -36,8 +36,13 @@
     </div>
 
     <script src="//code.jquery.com/jquery-4.0.0.min.js"></script>
-    <?!= include("preferences_script") ?>
+    <script>
+        const API_URL = '<?= getApiUrl() ?>';
+        const BETA_API_URL = '<?= getBetaApiUrl() ?>';
+    </script>
+    <?!= include("api_client") ?>
     <?!= include("script") ?>
+    <?!= include("preferences_script") ?>
 </body>
 
 </html>

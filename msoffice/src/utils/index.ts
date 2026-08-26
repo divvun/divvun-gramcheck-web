@@ -192,29 +192,39 @@ function loadIgnoredErrorTags(): string[] {
 
 export function ignoreIndividualError(error: APIGrammarError) {
     const savedIgnoredErrors = loadIgnoredIndividualErrors();
+    const serialized = serializeError(error);
 
-    savedIgnoredErrors.push(serializeError(error));
+    // Deduplicate before adding
+    if (savedIgnoredErrors.indexOf(serialized) === -1) {
+        savedIgnoredErrors.push(serialized);
+    }
 
     try {
-        saveSettings(IGNORED_ERRORS_KEY, savedIgnoredErrors.join(','));
+        saveSettings(IGNORED_ERRORS_KEY, JSON.stringify(savedIgnoredErrors));
     } catch (e) {
         console.error('Error saving ignored errors', e);
     }
 }
 
 function loadIgnoredIndividualErrors(): string[] {
-    let savedIgnoredErrors = loadSettings(IGNORED_ERRORS_KEY);
+    const savedIgnoredErrors = loadSettings(IGNORED_ERRORS_KEY);
     if (!savedIgnoredErrors) {
         return [];
     }
 
-    let errors: string[] = [];
     try {
-        errors = savedIgnoredErrors.split(',');
+        const parsed = JSON.parse(savedIgnoredErrors);
+        if (Array.isArray(parsed)) {
+            return parsed;
+        }
+        return [];
     } catch (e) {
-        console.error('Error parsing saved ignored errors', e);
-    } finally {
-        return errors;
+        // Migration: try legacy comma-separated format
+        try {
+            return savedIgnoredErrors.split(',').filter(Boolean);
+        } catch (_) {
+            return [];
+        }
     }
 }
 
@@ -225,8 +235,5 @@ function isIndividualErrorIgnored(error: APIGrammarError): boolean {
 }
 
 function serializeError(error: APIGrammarError): string {
-    return error.error_code + ':' +
-        error.start_index + ':' +
-        error.end_index + ':' +
-        error.error_text.replace(/[,:+]/g, '');
+    return error.error_code + ':' + error.error_text;
 }

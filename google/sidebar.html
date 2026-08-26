@@ -4,12 +4,17 @@
 <head>
     <base target="_top">
     <link rel="stylesheet" href="https://ssl.gstatic.com/docs/script/css/add-ons1.css">
-    <!-- The CSS package above applies Google styling to buttons and other elements. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap">
 
     <?!= include("style") ?>
 </head>
 
 <body>
+    <div id="settings-area" class="settings-area">
+        <div id="bg-loading" class="bg-loading-indicator visible"><div class="bg-spinner"></div></div>
+        <button id="open-preferences" class="gear-btn" title="Preferences" style="display:none;">&#x2699;</button>
+    </div>
+
     <div class="sidebar branding-below">
         <div class="block col-contain">
             <div class="block form-group">
@@ -19,8 +24,7 @@
             </div>
         </div>
         <div class="block" id="button-bar">
-            <button class="blue" id="open-preferences">Preferences</button>
-            <button class="blue" id="run-check">Run grammar check</button>
+            <button class="blue" id="run-check">Check grammar</button>
         </div>
 
         <div id="error-container" class="error-container">
@@ -52,8 +56,14 @@
     </div>
 
     <script src="//code.jquery.com/jquery-4.0.0.min.js"></script>
+    <script>
+        // API URLs injected at template render time (this block IS evaluated as a template)
+        const API_URL = '<?= getApiUrl() ?>';
+        const BETA_API_URL = '<?= getBetaApiUrl() ?>';
+    </script>
+    <?!= include("api_client") ?>
+    <?!= include("script") ?>
     <?!= include("sidebar_script") ?>
-        <?!= include("script") ?>
 </body>
 
 </html>

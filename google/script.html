@@ -1,5 +1,6 @@
 <script>
     function showError(msg, element) {
+        $('#error').remove();
         const text = (msg && msg.message) ? msg.message : String(msg);
         const div = $('<div id="error" class="error"></div>').text(text);
         $(element).after(div);
@@ -18,5 +19,20 @@
     }
     function hideLoading() {
         $('#loadingAnimation').hide();
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+
+    function escapeAttr(str) {
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 </script>

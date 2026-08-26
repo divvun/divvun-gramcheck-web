@@ -9,8 +9,9 @@ const VERSION = '2026-02-20';
 
 const IGNORED_ERROR_TAGS_KEY = 'ignoredErrorTags';
 const SELECTED_LANGUAGE_KEY = 'selectedLanguage';
-const IGNORED_ERRORS_KEY = 'ignoredIndividualErrors';
 const USE_BETA_API_KEY = 'useBetaApi';
+
+// ── GAS event handlers ───────────────────────────────────────────────
 
 function onOpen(e: GoogleAppsScript.Events.DocsOnOpen) {
     DocumentApp.getUi().createAddonMenu()
@@ -22,6 +23,8 @@ function onInstall(e: GoogleAppsScript.Events.DocsOnOpen) {
     onOpen(e);
 }
 
+// ── UI entry points ──────────────────────────────────────────────────
+
 function showSidebar() {
     const ui = HtmlService.createTemplateFromFile('sidebar')
         .evaluate()
@@ -29,326 +32,33 @@ function showSidebar() {
     DocumentApp.getUi().showSidebar(ui);
 }
 
-function tagsAnyIgnored_(ignoredTags: string[], tags: string[]) {
-    // Current behavior is, if any of the tags in the list is ignored, the entire category is
-    for (const tag of tags) {
-        if (ignoredTags.includes(tag))
-            return true
-    }
-    return false
-}
-
 function showPreferences() {
-    const template = HtmlService.createTemplateFromFile('preferences');
-
-    let errorTags: { [key: string]: string };
-    try {
-        errorTags = apiRequestGrammarCheckerPreferences().error_tags;
-    } catch (e: unknown) {
-        const err = e as Record<string, unknown>;
-        if (err && err.userMessage) {
-            throw new Error(err.userMessage as string);
-        }
-        throw new Error(e instanceof Error ? e.message : 'Failed to load preferences');
-    }
-
-    const ignoredTags = getIgnoredTags();
-
-    // Group tags by their localized name
-    const groupedTags: Record<string, string[]> = {};
-    Object.keys(errorTags).forEach((tag) => {
-        const name = errorTags[tag]
-        groupedTags[name] = (groupedTags[name] || []).concat([tag])
-    })
-
-    template['errorTags'] = Object.keys(groupedTags).map(name => ({
-        tag: groupedTags[name].join(","),
-        name: name,
-        ignored: tagsAnyIgnored_(ignoredTags, groupedTags[name])
-    }));
-
-    template['useBetaApi'] = getUseBetaApi();
-
-    const ui = template.evaluate();
+    const ui = HtmlService.createTemplateFromFile('preferences')
+        .evaluate();
     DocumentApp.getUi().showModalDialog(ui, "Preferences");
 }
 
-function normalizeLineEndings(text: string): string {
-    return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+// ── Init data (single GAS round-trip for sidebar startup) ────────────
+
+interface InitData {
+    selectedLanguage: string | null;
+    useBetaApi: boolean;
+    ignoredTags: string[];
 }
 
-interface GrammarCheckError {
-    errorText: string;
-    startIndex: number;
-    endIndex: number;
-    errorCode: string;
-    errorMessage: string;
-    suggestions: string[];
-}
-interface GrammarCheckResult {
-    results: {
-        text: string;
-        errors: GrammarCheckError[];
-    }[];
-}
-
-interface GrammarCheckWholeTextResult {
-    html: string;
-    error: GrammarCheckErrorData | null;
-    hasErrors: boolean;
-}
-
-function runGrammarCheckOnWholeText(lang: string): GrammarCheckWholeTextResult {
-    const paragraphs = DocumentApp.getActiveDocument().getBody().getParagraphs();
-
-    let html = '';
-    let lastError: GrammarCheckErrorData | null = null;
-
-    let paragraphIndex = 0;
-    for (const paragraph of paragraphs) {
-        try {
-            html += runGrammarCheck(lang, paragraph.getText(), paragraphIndex++);
-        } catch (e: unknown) {
-            // Check if it's a structured error
-            const err = e as Record<string, unknown>;
-            if (err && err.type && err.userMessage) {
-                lastError = err as unknown as GrammarCheckErrorData;
-
-                // For non-retryable errors, stop processing
-                if (!lastError.retryable) {
-                    Logger.log(`Non-retryable error at paragraph ${paragraphIndex}, stopping: ${lastError.message}`);
-                    break;
-                }
-
-                // For retryable errors, log and continue with remaining paragraphs
-                Logger.log(`Retryable error at paragraph ${paragraphIndex}, continuing: ${lastError.message}`);
-            } else {
-                // Unknown error, wrap it
-                const msg = e instanceof Error ? e.message : 'Unknown error';
-                lastError = createNetworkError(msg);
-                Logger.log(`Unknown error at paragraph ${paragraphIndex}: ${msg}`);
-                break;
-            }
-        }
-    }
-
-    if (lastError) {
-        return {
-            html: html,
-            error: lastError,
-            hasErrors: html.length > 0
-        };
-    }
-
-    if (html.length < 1) { // No grammar errors found
-        return {
-            html: 'No grammar errors found. To review your ignored error types, click the "Preferences" button above.',
-            error: null,
-            hasErrors: false
-        };
-    }
-
+function getInitData(): InitData {
     return {
-        html: html,
-        error: null,
-        hasErrors: true
+        selectedLanguage: loadSettings(SELECTED_LANGUAGE_KEY),
+        useBetaApi: getUseBetaApi(),
+        ignoredTags: getIgnoredTags(),
     };
 }
 
-function runGrammarCheck(lang: string, paragraph: string, paragraphIndex: number) {
-    const apiResult = grammarCheckApiRequest(lang, paragraph);
+// ── Document access (must stay server-side — uses DocumentApp) ───────
 
-    const resultsTemplate = HtmlService.createTemplateFromFile('results.html');
-    resultsTemplate['paragraphIndex'] = paragraphIndex;
-    resultsTemplate['errors'] = apiResult.errs.map((e) => {
-        return {
-            contextText: getHighlightError(apiResult.text, e.error_text, e.start_index),
-            errorText: e.error_text,
-            reason: e.description,
-            startIndex: e.start_index,
-            endIndex: e.end_index,
-            suggestions: e.suggestions,
-        };
-    });
-
-    const resultsHtml = resultsTemplate.evaluate().getContent();
-
-    if (resultsTemplate['errors'].length == 0) {
-        return '';
-    }
-
-    return resultsHtml;
-}
-
-function getHighlightError(paragraph: string, errorText: string, startIndex: number): string {
-    return clipContextText(paragraph, errorText, startIndex).replace(errorText, `<i>${errorText}</i>`);
-}
-
-function clipContextText(paragraph: string, errorText: string, startIndex: number): string {
-    if (errorText.indexOf('.') === 0) {
-        paragraph = '.' + paragraph;
-    }
-    if (errorText.lastIndexOf('.') > -1) {
-        paragraph += '.';
-    }
-    const errorTextPos = paragraph.indexOf(errorText, startIndex);
-    if (errorTextPos > -1) {
-        let cutStartIndex = paragraph.substring(0, errorTextPos - 1).lastIndexOf(' ');
-        if (cutStartIndex < 0) {
-            cutStartIndex = 0;
-        }
-        let cutEndIndex = paragraph.indexOf(' ', errorTextPos + errorText.length + 1);
-        if (cutEndIndex < 0) {
-            cutEndIndex = paragraph.length;
-        }
-        return paragraph.substring(cutStartIndex, cutEndIndex);
-    }
-
-    return paragraph;
-}
-
-interface ApiRequestOptions {
-    method: 'get' | 'post',
-    url: string,
-    payload?: object,
-    maxAttempts?: number,
-}
-
-function apiRequestWithRetry(options: ApiRequestOptions): unknown {
-    const maxAttempts = options.maxAttempts || defaultRetryOptions.maxAttempts;
-    let lastError: GrammarCheckErrorData | null = null;
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        try {
-            Logger.log(`API request attempt ${attempt}/${maxAttempts}: ${JSON.stringify(options)}`);
-
-            const goptions: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
-                method: options.method,
-                muteHttpExceptions: true,
-                contentType: 'application/json',
-                payload: options.payload ? JSON.stringify(options.payload) : undefined,
-            };
-
-            const response = UrlFetchApp.fetch(options.url, goptions);
-            const statusCode = response.getResponseCode();
-
-            if (statusCode >= 200 && statusCode < 300) {
-                try {
-                    return JSON.parse(response.getContentText());
-                } catch (parseError: unknown) {
-                    const msg = parseError instanceof Error ? parseError.message : String(parseError);
-                    lastError = createParseError(msg);
-                    if (attempt < maxAttempts) {
-                        const delay = getRetryDelay(attempt);
-                        Logger.log(`Parse error, retrying in ${delay}ms...`);
-                        Utilities.sleep(delay);
-                        continue;
-                    }
-                    throw lastError;
-                }
-            }
-
-            // Handle error status codes
-            lastError = createApiError(statusCode, response.getContentText());
-
-            // Only retry on retryable errors (5xx, 429)
-            if (isRetryableStatusCode(statusCode) && attempt < maxAttempts) {
-                const delay = getRetryDelay(attempt);
-                Logger.log(`API error ${statusCode}, retrying in ${delay}ms...`);
-                Utilities.sleep(delay);
-                continue;
-            }
-
-            throw lastError;
-
-        } catch (e: unknown) {
-            // If it's already a GrammarCheckErrorData, rethrow
-            const err = e as Record<string, unknown>;
-            if (err && err.type && err.userMessage) {
-                throw e;
-            }
-
-            // Network or other error
-            const msg = e instanceof Error ? e.message : 'Unknown error';
-            lastError = createNetworkError(msg);
-
-            if (attempt < maxAttempts) {
-                const delay = getRetryDelay(attempt);
-                Logger.log(`Network error, retrying in ${delay}ms...`);
-                Utilities.sleep(delay);
-                continue;
-            }
-
-            throw lastError;
-        }
-    }
-
-    throw lastError || createNetworkError('Request failed after all retry attempts');
-}
-
-// Legacy wrapper for backward compatibility
-function apiRequest(options: ApiRequestOptions) {
-    return apiRequestWithRetry(options);
-}
-
-interface APIGrammarError {
-    error_text: string;
-    start_index: number;
-    end_index: number;
-    error_code: string;
-    description: string;
-    suggestions: string[];
-}
-
-interface GrammarCheckApiResponse {
-    text: string;
-    errs: APIGrammarError[];
-}
-
-function grammarCheckApiRequest(lang: string, text: string): GrammarCheckApiResponse {
-    const ignoreTags = getIgnoredTags();
-    const payload: { text: string; ignore?: string[] } = {
-        text: normalizeLineEndings(text),
-    };
-    if (ignoreTags.length > 0) {
-        payload.ignore = ignoreTags;
-    }
-    return apiRequest({
-        method: 'post',
-        url: `${getCurrentApiUrl()}grammar/${lang}`,
-        payload
-    }) as GrammarCheckApiResponse;
-}
-
-interface LanguageOptions {
-    available: {
-        grammar: { [key: string]: string },
-        speller: { [key: string]: string },
-    },
-}
-
-function apiRequestLanguageOptions(): LanguageOptions {
-    return apiRequest({
-        url: `${getCurrentApiUrl()}languages`,
-        method: 'get',
-    }) as LanguageOptions;
-}
-
-interface GrammarCheckerAvailablePreferences {
-    error_tags: { [key: string]: string }
-}
-
-function apiRequestGrammarCheckerPreferences(): GrammarCheckerAvailablePreferences {
-    let selectedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
-    if (!selectedLanguage) {
-        const availableLangs = apiRequestLanguageOptions();
-        selectedLanguage = Object.keys(availableLangs.available.grammar)[0] || '<no_lang>';
-    }
-
-    return apiRequest({
-        url: `${getCurrentApiUrl()}${getPreferencesEndpoint(selectedLanguage)}`,
-        method: 'get',
-    }) as GrammarCheckerAvailablePreferences;
+function getParagraphs(): string[] {
+    const paragraphs = DocumentApp.getActiveDocument().getBody().getParagraphs();
+    return paragraphs.map(p => p.getText());
 }
 
 function runCorrection(errorText: string, correction: string, errorIndex: number, paragraphIndex: number) {
@@ -404,6 +114,8 @@ function clearHighlight() {
     }
 }
 
+// ── Settings (PropertiesService — must stay server-side) ─────────────
+
 function changeLanguage(key: string) {
     saveSettings(SELECTED_LANGUAGE_KEY, key);
 }
@@ -423,11 +135,6 @@ function saveIgnoredTags(tags: string[]) {
 function savePreferences(ignoredTags: string[], useBetaApi: boolean) {
     saveIgnoredTags(ignoredTags);
     setUseBetaApi(useBetaApi);
-}
-
-function include(filename: string) {
-    return HtmlService.createHtmlOutputFromFile(filename)
-        .getContent();
 }
 
 function loadSettings(key: string): string | null {
@@ -452,14 +159,266 @@ function setUseBetaApi(useBeta: boolean) {
     saveSettings(USE_BETA_API_KEY, useBeta.toString());
 }
 
-function getCurrentApiUrl(): string {
-    return getUseBetaApi() ? betaApiUrl : apiUrl;
-}
+// ── Template helpers ─────────────────────────────────────────────────
 
-function getPreferencesEndpoint(language: string): string {
-    return `grammar/${language}/preferences`;
+function include(filename: string) {
+    return HtmlService.createHtmlOutputFromFile(filename)
+        .getContent();
 }
 
 function getVersion(): string {
     return VERSION;
+}
+
+function getApiUrl(): string {
+    return apiUrl;
+}
+
+function getBetaApiUrl(): string {
+    return betaApiUrl;
+}
+
+// ── Background highlighting ──────────────────────────────────────────
+
+/**
+ * Error position data sent from the client-side after grammar check.
+ */
+interface ErrorPosition {
+    paragraphIndex: number;
+    startOffset: number;
+    endOffsetInclusive: number;
+    errorCode: string;
+    errorText: string;
+}
+
+/** Light red background for grammar errors */
+const ERROR_HIGHLIGHT_COLOR = '#fce8e6';
+
+/**
+ * Apply background highlighting to error positions in the document.
+ * Called from sidebar after grammar check completes.
+ * Also creates named ranges for each error for robust position tracking.
+ *
+ * @param errors - array of error positions from the grammar check
+ * @returns array of named range IDs created (one per error)
+ */
+function applyErrorMarkers(errors: ErrorPosition[]): string[] {
+    const doc = DocumentApp.getActiveDocument();
+    const body = doc.getBody();
+    const paras = body.getParagraphs();
+    const rangeIds: string[] = [];
+
+    for (const err of errors) {
+        const paragraph = paras[err.paragraphIndex];
+        if (!paragraph) {
+            rangeIds.push('');
+            continue;
+        }
+
+        const text = paragraph.editAsText();
+        const paraLength = text.getText().length;
+
+        // Clamp offsets to paragraph bounds
+        const start = Math.max(0, err.startOffset);
+        const end = Math.min(err.endOffsetInclusive, paraLength - 1);
+
+        if (start > end || start >= paraLength) {
+            rangeIds.push('');
+            continue;
+        }
+
+        // Apply background highlight
+        text.setBackgroundColor(start, end, ERROR_HIGHLIGHT_COLOR);
+
+        // Create a named range for position tracking
+        // Name format: gramcheck_{paragraphIndex}_{startOffset}_{errorCode}
+        const rangeName = 'gramcheck_' + err.paragraphIndex + '_' + start + '_' + err.errorCode;
+        const range = doc.newRange()
+            .addElement(text, start, end)
+            .build();
+        const namedRange = doc.addNamedRange(rangeName, range);
+        rangeIds.push(namedRange.getId());
+    }
+
+    return rangeIds;
+}
+
+/**
+ * Clear all grammar-check highlights and named ranges from the document.
+ * Called before a new grammar check or when sidebar closes.
+ */
+function clearAllErrorMarkers() {
+    const doc = DocumentApp.getActiveDocument();
+    const body = doc.getBody();
+
+    // Remove all gramcheck_ named ranges and restore background colors
+    const namedRanges = doc.getNamedRanges();
+    for (const nr of namedRanges) {
+        if (nr.getName().startsWith('gramcheck_')) {
+            // Restore background to null (transparent) for the range elements
+            const rangeElements = nr.getRange().getRangeElements();
+            for (const re of rangeElements) {
+                const element = re.getElement();
+                if (element.getType() === DocumentApp.ElementType.TEXT) {
+                    const text = element.asText();
+                    const start = re.isPartial() ? re.getStartOffset() : 0;
+                    const end = re.isPartial() ? re.getEndOffsetInclusive() : text.getText().length - 1;
+                    if (start <= end && end >= 0) {
+                        text.setBackgroundColor(start, end, null as unknown as string);
+                    }
+                }
+            }
+            nr.remove();
+        }
+    }
+}
+
+/**
+ * Clear error markers for a specific paragraph only.
+ * Used when re-checking a single paragraph after a correction.
+ */
+function clearParagraphErrorMarkers(paragraphIndex: number) {
+    const doc = DocumentApp.getActiveDocument();
+    const prefix = 'gramcheck_' + paragraphIndex + '_';
+
+    const namedRanges = doc.getNamedRanges();
+    for (const nr of namedRanges) {
+        if (nr.getName().startsWith(prefix)) {
+            const rangeElements = nr.getRange().getRangeElements();
+            for (const re of rangeElements) {
+                const element = re.getElement();
+                if (element.getType() === DocumentApp.ElementType.TEXT) {
+                    const text = element.asText();
+                    const start = re.isPartial() ? re.getStartOffset() : 0;
+                    const end = re.isPartial() ? re.getEndOffsetInclusive() : text.getText().length - 1;
+                    if (start <= end && end >= 0) {
+                        text.setBackgroundColor(start, end, null as unknown as string);
+                    }
+                }
+            }
+            nr.remove();
+        }
+    }
+}
+
+/**
+ * Get current positions of all gramcheck named ranges.
+ * Named ranges auto-adjust as user edits, so this returns
+ * up-to-date positions even after edits.
+ *
+ * @returns array of {rangeId, paragraphIndex, startOffset, endOffsetInclusive}
+ */
+function getErrorRangePositions(): Array<{
+    rangeId: string;
+    name: string;
+    startOffset: number;
+    endOffsetInclusive: number;
+}> {
+    const doc = DocumentApp.getActiveDocument();
+    const results: Array<{
+        rangeId: string;
+        name: string;
+        startOffset: number;
+        endOffsetInclusive: number;
+    }> = [];
+
+    const namedRanges = doc.getNamedRanges();
+    for (const nr of namedRanges) {
+        if (nr.getName().startsWith('gramcheck_')) {
+            const rangeElements = nr.getRange().getRangeElements();
+            if (rangeElements.length > 0) {
+                const re = rangeElements[0];
+                results.push({
+                    rangeId: nr.getId(),
+                    name: nr.getName(),
+                    startOffset: re.isPartial() ? re.getStartOffset() : 0,
+                    endOffsetInclusive: re.isPartial() ? re.getEndOffsetInclusive() : -1,
+                });
+            }
+        }
+    }
+
+    return results;
+}
+
+/**
+ * Remove a single error marker by its named range ID.
+ * Clears the background highlight and removes the named range.
+ */
+function removeErrorMarker(rangeId: string) {
+    const doc = DocumentApp.getActiveDocument();
+    const namedRange = doc.getNamedRangeById(rangeId);
+    if (!namedRange) return;
+
+    const rangeElements = namedRange.getRange().getRangeElements();
+    for (const re of rangeElements) {
+        const element = re.getElement();
+        if (element.getType() === DocumentApp.ElementType.TEXT) {
+            const text = element.asText();
+            const start = re.isPartial() ? re.getStartOffset() : 0;
+            const end = re.isPartial() ? re.getEndOffsetInclusive() : text.getText().length - 1;
+            if (start <= end && end >= 0) {
+    text.setBackgroundColor(start, end, null as unknown as string);
+            }
+        }
+    }
+    namedRange.remove();
+}
+
+/**
+ * Apply a correction using a named range ID for precise positioning.
+ * The named range tracks the error position even after user edits.
+ *
+ * @param rangeId - named range ID for the error
+ * @param correction - replacement text
+ */
+function runCorrectionByRange(rangeId: string, correction: string) {
+    const doc = DocumentApp.getActiveDocument();
+    const namedRange = doc.getNamedRangeById(rangeId);
+    if (!namedRange) {
+        throw new Error('Error marker not found. The text may have changed.');
+    }
+
+    const rangeElements = namedRange.getRange().getRangeElements();
+    if (rangeElements.length === 0) {
+        throw new Error('Error marker is empty. The text may have changed.');
+    }
+
+    const re = rangeElements[0];
+    const element = re.getElement();
+    if (element.getType() !== DocumentApp.ElementType.TEXT) {
+        throw new Error('Error marker does not point to text.');
+    }
+
+    const text = element.asText();
+    const start = re.isPartial() ? re.getStartOffset() : 0;
+    const end = re.isPartial() ? re.getEndOffsetInclusive() : text.getText().length - 1;
+
+    // Clear highlight, remove range, then apply correction
+    text.setBackgroundColor(start, end, null as unknown as string);
+    namedRange.remove();
+
+    text.deleteText(start, end);
+    text.insertText(start, correction);
+}
+
+/**
+ * Highlight an error using its named range ID (select it in the document).
+ */
+function highlightErrorByRange(rangeId: string) {
+    const doc = DocumentApp.getActiveDocument();
+    const namedRange = doc.getNamedRangeById(rangeId);
+    if (!namedRange) return;
+
+    const rangeElements = namedRange.getRange().getRangeElements();
+    if (rangeElements.length === 0) return;
+
+    const re = rangeElements[0];
+    const range = doc.newRange();
+    range.addElement(
+        re.getElement().asText(),
+        re.isPartial() ? re.getStartOffset() : 0,
+        re.isPartial() ? re.getEndOffsetInclusive() : re.getElement().asText().getText().length - 1
+    );
+    doc.setSelection(range.build());
 }
