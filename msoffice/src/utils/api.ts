@@ -162,11 +162,31 @@ export interface GrammarCheckerAvailablePreferences {
     error_tags: { [key: string]: string }
 }
 
+/**
+ * Resolve the language to actually talk to the current API with.
+ *
+ * The saved preference is only usable if the *current* API serves it — beta and
+ * production do not offer the same set of grammar checkers. When the preference
+ * is not on offer we fall back to the first available language, but we never
+ * persist that fallback: the user's real choice has to survive toggling the beta
+ * API off again.
+ */
+export async function resolveEffectiveLanguage(): Promise<string | null> {
+    const availableLangs = await apiRequestLanguageOptions();
+    const grammarLanguages = Object.keys(availableLangs.available.grammar);
+
+    const selectedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
+    if (selectedLanguage && grammarLanguages.indexOf(selectedLanguage) > -1) {
+        return selectedLanguage;
+    }
+
+    return grammarLanguages[0] || null;
+}
+
 export async function apiRequestGrammarCheckerPreferences(): Promise<GrammarCheckerAvailablePreferences> {
-    let selectedLanguage = loadSettings(SELECTED_LANGUAGE_KEY);
+    const selectedLanguage = await resolveEffectiveLanguage();
     if (!selectedLanguage) {
-        let availableLangs = await apiRequestLanguageOptions();
-        selectedLanguage = Object.keys(availableLangs.available.grammar)[0] || '<no_lang>';
+        return { error_tags: {} };
     }
 
     return await apiRequestWithRetry({

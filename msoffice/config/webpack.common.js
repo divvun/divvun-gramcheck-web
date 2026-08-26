@@ -85,6 +85,9 @@ const output = {
     filename: '[name].[hash].js',
     chunkFilename: '[id].[hash].chunk.js',
     globalObject: `(typeof self !== 'undefined' ? self : this)`,
+    // webpack 4 defaults to md4, which OpenSSL 3 (Node 17+) refuses to provide.
+    // Without this the build dies with ERR_OSSL_EVP_UNSUPPORTED.
+    hashFunction: 'sha256',
 };
 
 const WEBPACK_PLUGINS = [

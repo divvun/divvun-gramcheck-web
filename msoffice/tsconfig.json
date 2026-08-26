@@ -5,6 +5,8 @@
     "jsx": "react",
     "moduleResolution": "node",
     "sourceMap": true,
+    "skipLibCheck": true,
+    "downlevelIteration": true,
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "removeComments": false,

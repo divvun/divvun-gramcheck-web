@@ -2,6 +2,8 @@ import { Checkbox } from 'office-ui-fabric-react';
 import * as React from 'react';
 import { getUseBetaApi, IGNORED_ERROR_TAGS_KEY, loadSettings, saveSettings, setUseBetaApi } from '../utils';
 import { apiRequestGrammarCheckerPreferences, GrammarCheckerAvailablePreferences } from '../utils/api';
+import { GrammarCheckError } from '../utils/errors';
+import ErrorMessage from './ErrorMessage';
 
 export interface SettingsProps {
 }
@@ -11,6 +13,7 @@ interface SettingsState {
     allAvailableErrorTags: ErrorTags,
     selectedIgnoredErrorTags: string[],
     useBetaApi: boolean,
+    errorTagsError: GrammarCheckError | null,
 }
 
 export default class Settings extends React.Component<SettingsProps, SettingsState> {
@@ -20,16 +23,33 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
             allAvailableErrorTags: {},
             selectedIgnoredErrorTags: [],
             useBetaApi: getUseBetaApi(),
+            errorTagsError: null,
         };
     }
 
-    async componentDidMount() {
+    componentDidMount() {
         this.loadSavedSettings();
-        const availablePreferences = await apiRequestGrammarCheckerPreferences();
+        this.loadErrorTags();
+    }
 
-        this.setState({
-            allAvailableErrorTags: this.groupSettingsByLocalizedName(availablePreferences['error_tags']),
-        });
+    loadErrorTags = async () => {
+        try {
+            const availablePreferences = await apiRequestGrammarCheckerPreferences();
+
+            this.setState({
+                allAvailableErrorTags: this.groupSettingsByLocalizedName(availablePreferences['error_tags']),
+                errorTagsError: null,
+            });
+        } catch (e) {
+            // Without this the list silently stays empty — which is exactly what
+            // happens when the saved language isn't served by the selected API.
+            const error = e instanceof GrammarCheckError ? e : GrammarCheckError.networkError(e as Error);
+            console.error('Failed to load error tags:', error);
+            this.setState({
+                allAvailableErrorTags: {},
+                errorTagsError: error,
+            });
+        }
     }
 
     groupSettingsByLocalizedName(settings: ErrorTags): ErrorTags {
@@ -105,6 +125,8 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
             useBetaApi: checked,
         }, () => {
             setUseBetaApi(checked);
+            // The two APIs serve different languages and different error tags.
+            this.loadErrorTags();
         });
     }
 
@@ -130,6 +152,7 @@ export default class Settings extends React.Component<SettingsProps, SettingsSta
             <div className='settings-pane body'>
                 <h2>Error types</h2>
                 <p>Select the types of errors the grammar checker should warn you about.</p>
+                <ErrorMessage error={this.state.errorTagsError} onRetry={this.loadErrorTags} />
                 {ignoredErrorTagsCheckboxes}
 
                 <h2>API Settings</h2>

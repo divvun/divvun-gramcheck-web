@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { loadSettings, SELECTED_LANGUAGE_KEY, ignoreIndividualError, filterIgnoredIndividualErrors, getRange, saveSettings, debounce } from '../utils';
+import { loadSettings, SELECTED_LANGUAGE_KEY, ignoreIndividualError, filterIgnoredIndividualErrors, getRange, saveSettings, debounce, getUseBetaApi } from '../utils';
 import { GrammarCheckApiResponse, apiRequestGrammarCheck, APIGrammarError, apiRequestLanguageOptions } from '../utils/api';
 import { GrammarCheckError } from '../utils/errors';
 import {
@@ -8,8 +8,6 @@ import {
     insertAnnotationsForParagraph,
     removeAllAnnotations,
     removeAnnotationsForParagraph,
-    clearAnnotationMap,
-    getAnnotationMeta,
     getAllAnnotationMetas,
     handlePopupAccept,
     rejectAnnotation,
@@ -44,6 +42,9 @@ interface CheckerState {
         text: string,
     }[];
     currentError: GrammarCheckError | null;
+    // Set when the saved language preference isn't served by the current API
+    // (beta and production offer different grammar checkers).
+    unavailableLanguage: string | null;
     isOnline: boolean;
     hasCritiqueSupport: boolean;
     hasPopupSupport: boolean;
@@ -68,6 +69,7 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
             selectedLanguage: savedLanguage || undefined,
             availableLanguages: [],
             currentError: null,
+            unavailableLanguage: null,
             isOnline: navigator.onLine,
             hasCritiqueSupport: hasCritiques,
             hasPopupSupport: hasPopups,
@@ -85,15 +87,23 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                 };
             });
 
-            let selectedLanguage = this.state.selectedLanguage;
-            if (!selectedLanguage || selectedLanguage === 'undefined' || availableLanguages.findIndex((l) => l.key === selectedLanguage) < 0) {
-                selectedLanguage = availableLanguages[0].key;
-                saveSettings(SELECTED_LANGUAGE_KEY, selectedLanguage);
+            const savedLanguage = this.state.selectedLanguage;
+            const preferredLanguage = savedLanguage && savedLanguage !== 'undefined' ? savedLanguage : null;
+
+            let selectedLanguage = preferredLanguage;
+            let unavailableLanguage: string | null = null;
+
+            if (!selectedLanguage || availableLanguages.findIndex((l) => l.key === selectedLanguage) < 0) {
+                // Deliberately not persisted: beta and production serve different
+                // languages, so falling back here must not destroy the preference.
+                unavailableLanguage = preferredLanguage;
+                selectedLanguage = availableLanguages.length > 0 ? availableLanguages[0].key : undefined;
             }
 
             this.setState({
                 availableLanguages,
                 selectedLanguage,
+                unavailableLanguage,
                 currentError: null,
             });
         } catch (error) {
@@ -164,7 +174,7 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
         }
     }
 
-    handleAnnotationsRemoved = (annotationIds: string[]) => {
+    handleAnnotationsRemoved = (_annotationIds: string[]) => {
         // Annotations auto-removed when user edits annotated text.
         // We could re-check affected paragraphs here, but for now just
         // let the user re-run the check manually.
@@ -250,6 +260,7 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
     changeLanguage = (option: IDropdownOption): void => {
         this.setState({
             selectedLanguage: option.key.toString(),
+            unavailableLanguage: null,
             apiResultsByParagraph: [],
         }, () => {
             saveSettings(SELECTED_LANGUAGE_KEY, option.key.toString());
@@ -525,6 +536,15 @@ export default class Checker extends React.Component<CheckerProps, CheckerState>
                     <div className="critique-status">
                         <span className="critique-status-dot"></span>
                         {critiqueStatusText}
+                    </div>
+                )}
+
+                {this.state.unavailableLanguage && (
+                    <div className='language-unavailable'>
+                        <strong>{this.state.unavailableLanguage}</strong> is not available on the{' '}
+                        {getUseBetaApi() ? 'beta' : 'production'} API, so another language has been
+                        selected. Your preference is kept and will be restored when it is available
+                        again.
                     </div>
                 )}
 
